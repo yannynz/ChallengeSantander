@@ -34,5 +34,5 @@ def load_base1(filepath: str):
     print("✅ Base 1 carregada com sucesso!")
 
 if __name__ == "__main__":
-    load_base1("../Challenge FIAP - Bases.xlsx")
+    load_base1("Challenge FIAP - Bases.xlsx")
 

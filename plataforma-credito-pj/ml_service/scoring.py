@@ -1,6 +1,6 @@
-import pandas as pd
-import joblib
 from pathlib import Path
+import joblib
+import pandas as pd
 
 # Carregar modelos salvos
 MODEL_PATH = Path(__file__).resolve().parent / "models"

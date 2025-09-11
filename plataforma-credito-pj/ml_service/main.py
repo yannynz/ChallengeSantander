@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from scoring import calcular_score
-from forecasting import forecast_arima
 from sna import calcular_centralidades
+from forecasting import forecast_arima
 import networkx as nx
 
 app = FastAPI(title="ML-Service", version="1.0.0")
@@ -12,8 +12,20 @@ app = FastAPI(title="ML-Service", version="1.0.0")
 # ============================
 
 class ScoreRequest(BaseModel):
-    features: dict
+    features: dict = {
+        "idade": 5,
+        "vl_fatu": 100000,
+        "vl_sldo": 20000
+    }
     modelo: str = "rf"
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "features": {"idade": 5, "vl_fatu": 100000, "vl_sldo": 20000},
+                "modelo": "rf"
+            }
+        }
 
 @app.post("/ml/v1/score")
 def score_risco(req: ScoreRequest):
@@ -28,6 +40,14 @@ def score_risco(req: ScoreRequest):
 class ForecastRequest(BaseModel):
     serie: list[float]
     horizonte: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "serie": [100, 110, 120, 130, 140],
+                "horizonte": 3
+            }
+        }
 
 @app.post("/ml/v1/forecast/arima")
 def forecast(req: ForecastRequest):
