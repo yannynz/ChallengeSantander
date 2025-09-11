@@ -14,7 +14,7 @@ public class EmpresaService {
         this.repo = repo;
     }
 
-    public Optional<Empresa> findById(Integer id) {
+    public Optional<Empresa> findById(String id) {
         return repo.findById(id);
     }
 }

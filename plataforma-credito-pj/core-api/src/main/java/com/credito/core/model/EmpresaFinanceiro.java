@@ -1,3 +1,4 @@
+// src/main/java/com/credito/core/model/EmpresaFinanceiro.java
 package com.credito.core.model;
 
 import jakarta.persistence.*;
@@ -6,21 +7,31 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "empresa_financeiro")
 public class EmpresaFinanceiro {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
 
-    private Integer empresaId;
+    // TEXT no banco
+    @Column(name = "empresa_id", nullable = false)
+    private String empresaId;
+
+    // data do snapshot financeiro; ajuste se seu campo tiver outro nome
+    @Column(name = "dt_ref", nullable = false)
     private LocalDate dtRef;
+
+    @Column(name = "vl_fatu")
     private Double vlFatu;
+
+    @Column(name = "vl_sldo")
     private Double vlSldo;
 
     // Getters e Setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public Integer getEmpresaId() { return empresaId; }
-    public void setEmpresaId(Integer empresaId) { this.empresaId = empresaId; }
+    public String getEmpresaId() { return empresaId; }
+    public void setEmpresaId(String empresaId) { this.empresaId = empresaId; }
 
     public LocalDate getDtRef() { return dtRef; }
     public void setDtRef(LocalDate dtRef) { this.dtRef = dtRef; }

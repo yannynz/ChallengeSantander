@@ -8,23 +8,23 @@ import java.time.LocalDate;
 public class Transacao {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
 
-    private Integer idPgto;
-    private Integer idRcbe;
+    private String idPgto;
+    private String idRcbe;
     private Double vl;
     private String dsTran;
     private LocalDate dtRef;
 
     // Getters e Setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public Integer getIdPgto() { return idPgto; }
-    public void setIdPgto(Integer idPgto) { this.idPgto = idPgto; }
+    public String getIdPgto() { return idPgto; }
+    public void setIdPgto(String idPgto) { this.idPgto = idPgto; }
 
-    public Integer getIdRcbe() { return idRcbe; }
-    public void setIdRcbe(Integer idRcbe) { this.idRcbe = idRcbe; }
+    public String getIdRcbe() { return idRcbe; }
+    public void setIdRcbe(String idRcbe) { this.idRcbe = idRcbe; }
 
     public Double getVl() { return vl; }
     public void setVl(Double vl) { this.vl = vl; }

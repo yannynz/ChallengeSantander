@@ -26,7 +26,7 @@ public class EmpresaController {
     }
 
     @GetMapping("/{id}/score")
-public Map<String, Object> getScore(@PathVariable Integer id) {
+public Map<String, Object> getScore(@PathVariable String id) {
     Empresa emp = empresaRepo.findById(id).orElseThrow();
 
     Map<String, Object> features = Map.of(
@@ -52,7 +52,7 @@ public Map<String, Object> getScore(@PathVariable Integer id) {
 }
 
     @GetMapping("/{id}/rede")
-    public Map<String, Object> getRede(@PathVariable Integer id) {
+    public Map<String, Object> getRede(@PathVariable String id) {
         Map<String, Object> body = Map.of(
             "edges", List.of(
                 Map.of("source", id.toString(), "target", "200", "weight", 100.0),
@@ -68,7 +68,7 @@ public List<Empresa> listarEmpresas() {
 }
 
 @GetMapping("/{id}")
-public Empresa getEmpresa(@PathVariable Integer id) {
+public Empresa getEmpresa(@PathVariable String id) {
     return empresaRepo.findById(id).orElseThrow();
 }
 

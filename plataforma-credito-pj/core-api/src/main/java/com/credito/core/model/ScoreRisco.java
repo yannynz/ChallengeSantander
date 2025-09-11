@@ -8,20 +8,20 @@ import java.time.LocalDateTime;
 public class ScoreRisco {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
 
-    private Integer empresaId;
+    private String empresaId;
     private Double score;
     private String modelo;
     private String versao;
     private LocalDateTime criadoEm;
 
     // Getters e Setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public Integer getEmpresaId() { return empresaId; }
-    public void setEmpresaId(Integer empresaId) { this.empresaId = empresaId; }
+    public String getEmpresaId() { return empresaId; }
+    public void setEmpresaId(String empresaId) { this.empresaId = empresaId; }
 
     public Double getScore() { return score; }
     public void setScore(Double score) { this.score = score; }
