@@ -1,1 +1,51 @@
-<p>dashboard works!</p>
+<div class="grid">
+  <!-- Campo de busca -->
+  <mat-card class="col-12">
+    <div class="search">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Buscar por ID ou CNPJ</mat-label>
+        <input matInput [(ngModel)]="term" (keyup.enter)="onSearch()">
+        <button mat-icon-button matSuffix aria-label="buscar" (click)="onSearch()">
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+  </mat-card>
+
+  <!-- 4 cards: Score / Rede / Macro / Alertas -->
+  <mat-card class="col">
+    <h3>Score</h3>
+    <apx-chart
+      [series]="scoreOpts.series"
+      [chart]="scoreOpts.chart"
+      [plotOptions]="scoreOpts.plotOptions"
+      [labels]="scoreOpts.labels">
+    </apx-chart>
+  </mat-card>
+
+  <mat-card class="col">
+    <h3>Rede Financeira</h3>
+    <div #graph class="graph"></div>
+  </mat-card>
+
+  <mat-card class="col">
+    <h3>Macro (IPCA/SELIC)</h3>
+    <apx-chart
+      [series]="macroSeries"
+      [chart]="macroChart"
+      [xaxis]="macroXAxis"
+      [stroke]="macroStroke"
+      [dataLabels]="macroDataLabels">
+    </apx-chart>
+  </mat-card>
+
+  <mat-card class="col">
+    <h3>Alertas</h3>
+    <apx-chart
+      [series]="alertasSeries"
+      [chart]="alertasChart"
+      [xaxis]="alertasXAxis"
+      [plotOptions]="alertasPlot">
+    </apx-chart>
+  </mat-card>
+</div>

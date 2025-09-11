@@ -1,0 +1,22 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+
+.kpis mat-card { grid-column: span 12; }
+@media (min-width: 768px) {
+  .kpis mat-card { grid-column: span 4; }
+}
+
+.value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: .25rem;
+}
+
+.meta {
+  color: #6b7280; /* cinzinha */
+  margin-top: .25rem;
+}

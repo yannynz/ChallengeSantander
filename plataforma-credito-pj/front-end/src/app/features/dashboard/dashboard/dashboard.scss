@@ -1,0 +1,21 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+.col-12 { grid-column: span 12; }
+.col     { grid-column: span 12; }
+
+@media (min-width: 900px) {
+  .col { grid-column: span 3; }
+}
+
+mat-card {
+  border-radius: 16px;
+}
+
+.graph {
+  height: 260px;
+}
+.w-100 { width: 100%; }
+.search { padding: 4px 4px 0 4px; }
