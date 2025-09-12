@@ -1,7 +1,3 @@
-Boa! 🎉 Agora que você já tem os controllers em **Spring Boot** configurados, sim, já dá pra testar o Java — desde que o banco esteja populado (via ETL) e o `ml_service` esteja rodando para responder às chamadas de score/rede/forecast.
-
-Vou organizar os endpoints disponíveis e como você pode testá-los:
-
 ---
 
 # 🚀 Endpoints e Testes
@@ -111,5 +107,4 @@ Resposta esperada (exemplo):
 1. **Postgres** rodando e populado (ETL precisa ter rodado).
 2. **ml\_service** disponível em `http://credito_ml_service:8000` (conforme está configurado no `MlServiceClient`).
 3. **core\_api** rodando na porta **8080** (já aparece nos logs do Tomcat).
-
 
