@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: credito_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: credito_pj
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  minio:
+    image: minio/minio
+    container_name: credito_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  ml_service:
+    build: ./ml_service
+    container_name: credito_ml_service
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./ml_service:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+
+  core-api:
+    build: ./core-api
+    container_name: credito_core_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - ml_service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/credito_pj
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+  etl:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/credito_pj
+    restart: "no"
+    command: ["python", "etl_base1.py", "etl_base1.py"]
+    volumes:
+    - ./etl:/app
+    - ./Challenge FIAP - Bases.xlsx:/app/Challenge FIAP - Bases.xlsx
+
+  trainer:
+   build:
+    context: ./ml_service   
+    dockerfile: Dockerfile
+   entrypoint: ["python"]
+   command: ["train_models.py"]
+   volumes:
+    - ./ml_service:/app
+   depends_on:
+    - postgres
+    - minio
+    - etl 
+   environment:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/credito_pj
+    restart: "no"   
+
+volumes:
+  pgdata:
+  minio_data:
+

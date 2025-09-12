@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+*.ipynb_checkpoints
+
+# Virtual envs (qualquer nível)
+venv/
+.venv/
+**/venv/
+**/.venv/
+
+# Artefatos pesados comuns
+*.so
+*.dll
+*.dylib
+*.model
+*.bin
+*.pkl
+*.h5
+*.ckpt
+data/
+
