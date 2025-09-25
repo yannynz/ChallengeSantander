@@ -1,19 +1,19 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+﻿import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+
+import { ApiService, EmpresaScoreResponse, MacroForecast } from './api';
 
 @Injectable({providedIn:'root'})
 export class MlService {
-  base = 'http://localhost:8000/ml/v1';
-  constructor(private http: HttpClient){}
+  private readonly api = inject(ApiService);
 
-  score(features:any): Observable<any>{
-    return of({ score: 0.82, modelo: 'rf-baseline', versao: '1.0.0' });
-    // REAL: return this.http.post(`${this.base}/score`, {features});
+  score(input: { empresaId: string } | string): Observable<EmpresaScoreResponse> {
+    const empresaId = typeof input === 'string' ? input : input.empresaId;
+    return this.api.getEmpresaScore(empresaId);
   }
 
-  forecastArima(serie:string, horizonte:number){
-    // REAL: return this.http.post(`${this.base}/forecast/arima`, {serie, horizonte});
-    return of({ forecast: [4.1,4.15,4.2,4.1,4.0,3.95] });
+  forecastArima(serie: string, horizonte: number, from?: string): Observable<MacroForecast> {
+    const reference = from ?? new Date().toISOString().slice(0, 10);
+    return this.api.getMacro(serie, reference);
   }
 }

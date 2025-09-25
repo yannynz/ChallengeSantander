@@ -1,19 +1,24 @@
-<section class="kpis">
+﻿<section class="kpis" *ngIf="!loading() && !error(); else stateTpl">
   <mat-card>
-    <mat-card-title>AUC</mat-card-title>
-    <div class="value">≥ 0.82</div>
-    <div class="meta">Meta: ≥ 0.80</div>
+    <mat-card-title>Score Medio</mat-card-title>
+    <div class="value">{{ scoreMedio() }}%</div>
+    <div class="meta">Base: {{ totalAnalises() }} decisoes</div>
   </mat-card>
 
   <mat-card>
-    <mat-card-title>Latência p95</mat-card-title>
-    <div class="value">≤ 1.65s</div>
-    <div class="meta">Meta: &lt; 2s</div>
+    <mat-card-title>Taxa de Aprovacao</mat-card-title>
+    <div class="value">{{ aprovacao() }}%</div>
+    <div class="meta">Analisadas: {{ totalAnalises() }}</div>
   </mat-card>
 
   <mat-card>
-    <mat-card-title>Disponibilidade</mat-card-title>
-    <div class="value">≥ 99.0%</div>
-    <div class="meta">Jan–Mai/2025</div>
+    <mat-card-title>Limite Medio</mat-card-title>
+    <div class="value">{{ limiteMedio() }}</div>
+    <div class="meta">Base: {{ totalAnalises() }} decisoes</div>
   </mat-card>
 </section>
+
+<ng-template #stateTpl>
+  <div *ngIf="loading()" class="px-3 py-2 text-sm">Carregando indicadores...</div>
+  <div *ngIf="!loading() && error()" class="px-3 py-2 text-sm" style="color:#b91c1c;">{{ error() }}</div>
+</ng-template>

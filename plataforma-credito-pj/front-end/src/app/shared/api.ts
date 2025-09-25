@@ -1,40 +1,117 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+﻿import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, catchError, map, of } from 'rxjs';
+
+export interface EmpresaSummary {
+  id: string;
+  cnpj?: string;
+  dsCnae?: string;
+  dtAbrt?: string;
+}
+
+export interface EmpresaScoreResponse {
+  score: number;
+  modelo?: string;
+  versao?: string;
+  explicacoes?: Record<string, number>;
+  historico?: number[];
+  [key: string]: unknown;
+}
+
+export interface GraphNode {
+  id: string | number;
+  label?: string;
+  group?: string;
+  value?: number;
+}
+
+export interface GraphEdge {
+  id?: string | number;
+  from?: string | number;
+  to?: string | number;
+  source?: string | number;
+  target?: string | number;
+  value?: number;
+  weight?: number;
+}
+
+export interface EmpresaRedeResponse {
+  nodes?: GraphNode[];
+  edges?: GraphEdge[];
+  [key: string]: unknown;
+}
+
+export interface MacroForecast {
+  serie?: number[];
+  forecast?: number[];
+  horizonte?: number;
+  timestamps?: Array<string | number>;
+  [key: string]: unknown;
+}
+
+export interface Decisao {
+  id: string;
+  empresaId: string;
+  dtDecisao: string;
+  score?: number | null;
+  aprovacao: boolean;
+  limite?: number | null;
+  moeda?: string | null;
+  motivo?: string | null;
+  decisao?: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private base = 'http://localhost:8080/api/v1';
+  private readonly http = inject(HttpClient);
+  private readonly base = 'http://localhost:8080';
 
-  constructor(private http: HttpClient) {}
-
-  getEmpresaScore(idOrCnpj: string): Observable<any> {
-    return of({
-      empresaId: idOrCnpj,
-      score: 0.82,
-      faixa: 'médio',
-      explicacoes: { faturamento_yoy: 0.3, betweenness: 0.2 },
-      historico: [12, 18, 22, 35, 28, 40, 42, 50, 55, 61, 70, 76]
-    });
-    // produção: return this.http.get(`${this.base}/empresas/${idOrCnpj}/score`);
+  getEmpresas(): Observable<EmpresaSummary[]> {
+    return this.http.get<EmpresaSummary[]>(`${this.base}/empresas`);
   }
 
-  getEmpresaRede(idOrCnpj: string): Observable<any> {
-    return of({
-      nodes: [
-        { id: 'A', label: 'CNPJ_00001' },
-        { id: 'B', label: 'CNPJ_00009' },
-        { id: 'C', label: 'CNPJ_00042' },
-      ],
-      edges: [
-        { from: 'A', to: 'B', value: 123456 },
-        { from: 'B', to: 'C', value: 45678 },
-      ]
-    });
-    // produção: return this.http.get(`${this.base}/empresas/${idOrCnpj}/rede`);
+  getEmpresa(idOrCnpj: string): Observable<EmpresaSummary> {
+    return this.http.get<EmpresaSummary>(`${this.base}/empresas/${idOrCnpj}`);
   }
 
-  getMacro(serie: string, from: string): Observable<any> {
-    return this.http.get(`${this.base}/macro`, { params: { serie, from }});
+  getEmpresaScore(idOrCnpj: string): Observable<EmpresaScoreResponse> {
+    return this.http.get<EmpresaScoreResponse>(`${this.base}/empresas/${idOrCnpj}/score`);
+  }
+
+  getEmpresaRede(idOrCnpj: string): Observable<EmpresaRedeResponse> {
+    return this.http.get<EmpresaRedeResponse>(`${this.base}/empresas/${idOrCnpj}/rede`);
+  }
+
+  getMacro(serie: string, from: string): Observable<MacroForecast> {
+    const params = new HttpParams().set('serie', serie).set('from', from);
+    return this.http.get<MacroForecast>(`${this.base}/macro`, { params });
+  }
+
+  listDecisoes(): Observable<Decisao[]> {
+    return this.http.get<Decisao[]>(`${this.base}/decisoes`);
+  }
+
+  criarDecisao(empresaId: string): Observable<Decisao> {
+    return this.http.post<Decisao>(`${this.base}/decisoes`, { empresaId });
+  }
+
+  resolveEmpresaId(idOrCnpj: string): Observable<string> {
+    const trimmed = idOrCnpj.trim();
+    if (!trimmed) {
+      return of('');
+    }
+
+    return this.getEmpresa(trimmed).pipe(
+      map((empresa) => empresa.id ?? trimmed),
+      catchError(() =>
+        this.getEmpresas().pipe(
+          map((lista) => {
+            const match = lista.find((item) => item.id === trimmed || item.cnpj === trimmed);
+            return match?.id ?? trimmed;
+          }),
+          catchError(() => of(trimmed))
+        )
+      )
+    );
   }
 }
