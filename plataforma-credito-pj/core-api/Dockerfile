@@ -1,6 +1,7 @@
 FROM public.ecr.aws/docker/library/eclipse-temurin:21-jdk AS builder
 WORKDIR /app
 COPY . .
+RUN chmod +x mvnw
 RUN ./mvnw clean package -DskipTests
 
 FROM public.ecr.aws/docker/library/eclipse-temurin:21-jdk
