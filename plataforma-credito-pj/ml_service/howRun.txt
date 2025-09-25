@@ -1,0 +1,13 @@
+No Windows, use:
+cd plataforma-credito-pj
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+
+No Debian:
+cd plataforma-credito-pj
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+
