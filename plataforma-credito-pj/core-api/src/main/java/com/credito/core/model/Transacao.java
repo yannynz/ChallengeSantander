@@ -8,17 +8,26 @@ import java.time.LocalDate;
 public class Transacao {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
+    private Long id;
 
+    @Column(name = "id_pgto")
     private String idPgto;
+
+    @Column(name = "id_rcbe")
     private String idRcbe;
+
+    @Column(name = "vl")
     private Double vl;
+
+    @Column(name = "ds_tran")
     private String dsTran;
+
+    @Column(name = "dt_ref")
     private LocalDate dtRef;
 
     // Getters e Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getIdPgto() { return idPgto; }
     public void setIdPgto(String idPgto) { this.idPgto = idPgto; }
@@ -35,4 +44,3 @@ public class Transacao {
     public LocalDate getDtRef() { return dtRef; }
     public void setDtRef(LocalDate dtRef) { this.dtRef = dtRef; }
 }
-

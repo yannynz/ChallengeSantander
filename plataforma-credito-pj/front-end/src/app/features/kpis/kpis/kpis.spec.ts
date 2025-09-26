@@ -1,20 +1,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZoneChangeDetection } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { Kpis } from './kpis';
+import { KpisComponent } from './kpis';
 
-describe('Kpis', () => {
-  let component: Kpis;
-  let fixture: ComponentFixture<Kpis>;
+describe('KpisComponent', () => {
+  let component: KpisComponent;
+  let fixture: ComponentFixture<KpisComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Kpis]
+      imports: [KpisComponent, HttpClientTestingModule],
+      providers: [provideZoneChangeDetection()]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Kpis);
+    fixture = TestBed.createComponent(KpisComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {

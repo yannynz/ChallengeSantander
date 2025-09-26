@@ -1,20 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZoneChangeDetection } from '@angular/core';
 
-import { CardScore } from './card-score';
+import { CardScoreComponent } from './card-score';
 
-describe('CardScore', () => {
-  let component: CardScore;
-  let fixture: ComponentFixture<CardScore>;
+describe('CardScoreComponent', () => {
+  let component: CardScoreComponent;
+  let fixture: ComponentFixture<CardScoreComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CardScore]
+      imports: [CardScoreComponent],
+      providers: [provideZoneChangeDetection()]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(CardScore);
+    fixture = TestBed.createComponent(CardScoreComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
