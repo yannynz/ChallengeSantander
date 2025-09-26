@@ -1,6 +1,6 @@
-﻿import { Injectable, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, concatMap, defaultIfEmpty, filter, from, map, of, take } from 'rxjs';
 
 export interface EmpresaSummary {
   id: string;
@@ -101,17 +101,95 @@ export class ApiService {
       return of('');
     }
 
+    const candidates = this.buildCandidates(trimmed);
+
     return this.getEmpresa(trimmed).pipe(
       map((empresa) => empresa.id ?? trimmed),
       catchError(() =>
         this.getEmpresas().pipe(
           map((lista) => {
-            const match = lista.find((item) => item.id === trimmed || item.cnpj === trimmed);
-            return match?.id ?? trimmed;
+            const match = this.findMatchInList(lista ?? [], candidates);
+            return match ?? trimmed;
           }),
-          catchError(() => of(trimmed))
+          catchError(() => this.tryFetchIndividually(candidates, trimmed))
         )
       )
+    );
+  }
+
+  private buildCandidates(identifier: string): string[] {
+    const candidates = new Set<string>();
+    const trimmed = identifier.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    candidates.add(trimmed);
+    candidates.add(trimmed.toUpperCase());
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits) {
+      candidates.add(digits);
+      if (digits.length >= 14) {
+        candidates.add(digits.slice(-14).padStart(14, '0'));
+      } else {
+        const suffix = digits.slice(-5).padStart(5, '0');
+        candidates.add(`CNPJ_${suffix}`);
+        candidates.add(digits.padStart(14, '0'));
+      }
+    }
+
+    return Array.from(candidates.values()).filter(Boolean);
+  }
+
+  private findMatchInList(lista: EmpresaSummary[], candidates: string[]): string | undefined {
+    if (!lista?.length || !candidates.length) {
+      return undefined;
+    }
+
+    const candidateIds = new Set(candidates.map((item) => item.toUpperCase()));
+    const candidateDigits = new Set(
+      candidates
+        .map((item) => item.replace(/\D/g, ''))
+        .filter((value) => !!value)
+    );
+
+    for (const empresa of lista) {
+      const id = (empresa.id ?? '').toUpperCase();
+      if (id && candidateIds.has(id)) {
+        return empresa.id ?? id;
+      }
+
+      const cnpjRaw = empresa.cnpj ?? '';
+      const cnpjUpper = cnpjRaw.toUpperCase();
+      if (cnpjUpper && candidateIds.has(cnpjUpper)) {
+        return empresa.id ?? cnpjUpper;
+      }
+
+      const cnpjDigits = cnpjRaw.replace(/\D/g, '');
+      if (cnpjDigits && candidateDigits.has(cnpjDigits)) {
+        return empresa.id ?? cnpjRaw;
+      }
+    }
+
+    return undefined;
+  }
+
+  private tryFetchIndividually(candidates: string[], fallback: string): Observable<string> {
+    if (!candidates.length) {
+      return of(fallback);
+    }
+
+    return from(candidates).pipe(
+      concatMap((candidate) =>
+        this.getEmpresa(candidate).pipe(
+          map((empresa) => empresa.id ?? candidate),
+          catchError(() => of<string | null>(null))
+        )
+      ),
+      filter((value): value is string => !!value),
+      defaultIfEmpty(fallback),
+      take(1)
     );
   }
 }

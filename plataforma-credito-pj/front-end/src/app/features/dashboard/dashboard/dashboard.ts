@@ -151,13 +151,39 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onSearch(): void {
     const raw = (this.term || '').trim();
-    if (!raw) return;
-    const digits = raw.replace(/\D/g, '');
-    if (/^\d{14}$/.test(digits)) {
-      this.router.navigate(['/empresa/cnpj', digits]);
-    } else {
-      this.router.navigate(['/empresa', raw]);
+    if (!raw) {
+      return;
     }
+
+    const canonical = this.toCanonicalIdentifier(raw);
+    if (!canonical) {
+      return;
+    }
+
+    if (canonical.startsWith('CNPJ_') || /^\d{14}$/.test(canonical)) {
+      this.router.navigate(['/empresa/cnpj', canonical]);
+    } else {
+      this.router.navigate(['/empresa', canonical]);
+    }
+  }
+
+  private toCanonicalIdentifier(term: string): string | null {
+    const trimmed = term.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits) {
+      if (digits.length >= 14) {
+        const normalized = digits.slice(-14);
+        return normalized.padStart(14, '0');
+      }
+      const suffix = digits.slice(-5).padStart(5, '0');
+      return `CNPJ_${suffix}`;
+    }
+
+    return trimmed.toUpperCase();
   }
 
   private loadEmpresas(): void {

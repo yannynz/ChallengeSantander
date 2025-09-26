@@ -3,7 +3,7 @@ package com.credito.core.model.dto;
 import java.time.LocalDateTime;
 
 public record DecisaoResponse(
-        String id,
+        Long id,
         String empresaId,
         LocalDateTime dtDecisao,
         Double score,
@@ -13,4 +13,3 @@ public record DecisaoResponse(
         String motivo,
         String decisao
 ) {}
-

@@ -8,17 +8,32 @@ import java.time.LocalDateTime;
 public class ScoreRisco {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
+    private Long id;
 
+    @Column(name = "empresa_id", nullable = false)
     private String empresaId;
+
+    @Column(name = "score")
     private Double score;
+
+    @Column(name = "modelo")
     private String modelo;
+
+    @Column(name = "versao_modelo")
     private String versao;
-    private LocalDateTime criadoEm;
+
+    @Column(name = "dt_calc", nullable = false)
+    private LocalDateTime dtCalc;
+
+    @Column(name = "threshold")
+    private Double threshold;
+
+    @Column(name = "auc_valid")
+    private Double aucValid;
 
     // Getters e Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getEmpresaId() { return empresaId; }
     public void setEmpresaId(String empresaId) { this.empresaId = empresaId; }
@@ -32,7 +47,12 @@ public class ScoreRisco {
     public String getVersao() { return versao; }
     public void setVersao(String versao) { this.versao = versao; }
 
-    public LocalDateTime getCriadoEm() { return criadoEm; }
-    public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
-}
+    public LocalDateTime getDtCalc() { return dtCalc; }
+    public void setDtCalc(LocalDateTime dtCalc) { this.dtCalc = dtCalc; }
 
+    public Double getThreshold() { return threshold; }
+    public void setThreshold(Double threshold) { this.threshold = threshold; }
+
+    public Double getAucValid() { return aucValid; }
+    public void setAucValid(Double aucValid) { this.aucValid = aucValid; }
+}

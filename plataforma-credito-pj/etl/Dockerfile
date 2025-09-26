@@ -25,5 +25,5 @@ RUN if [ -f "requirements.txt" ]; then \
 # Copia scripts ETL
 COPY . .
 
-# Executa múltiplos scripts (pode alterar a ordem conforme necessário)
-CMD ["python", "etl_base1.py", "etl_base2.py"]
+# Executa as cargas de Base 1 e Base 2 em sequência
+CMD ["python", "run_all.py"]

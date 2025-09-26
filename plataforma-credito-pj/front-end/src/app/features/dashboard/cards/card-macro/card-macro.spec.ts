@@ -1,20 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZoneChangeDetection } from '@angular/core';
 
-import { CardMacro } from './card-macro';
+import { CardMacroComponent } from './card-macro';
 
-describe('CardMacro', () => {
-  let component: CardMacro;
-  let fixture: ComponentFixture<CardMacro>;
+describe('CardMacroComponent', () => {
+  let component: CardMacroComponent;
+  let fixture: ComponentFixture<CardMacroComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CardMacro]
+      imports: [CardMacroComponent],
+      providers: [provideZoneChangeDetection()]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(CardMacro);
+    fixture = TestBed.createComponent(CardMacroComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {

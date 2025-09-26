@@ -1,20 +1,31 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZoneChangeDetection } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
-import { EmpresaPage } from './empresa-page';
+import { EmpresaPageComponent } from './empresa-page';
 
-describe('EmpresaPage', () => {
-  let component: EmpresaPage;
-  let fixture: ComponentFixture<EmpresaPage>;
+describe('EmpresaPageComponent', () => {
+  let component: EmpresaPageComponent;
+  let fixture: ComponentFixture<EmpresaPageComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EmpresaPage]
+      imports: [EmpresaPageComponent, HttpClientTestingModule],
+      providers: [
+        provideZoneChangeDetection(),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: convertToParamMap({}) }
+          }
+        }
+      ]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(EmpresaPage);
+    fixture = TestBed.createComponent(EmpresaPageComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
