@@ -1,4 +1,4 @@
-﻿import { Component, Input, OnChanges, SimpleChanges, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Input, OnChanges, SimpleChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import {
@@ -58,7 +58,10 @@ export class TabScoreHistoricoComponent implements OnChanges {
   @Input() empresaId?: string | number | null;
   @Input() cnpj?: string | null;
 
-  private readonly api = inject(ApiService);
+  constructor(
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef
+  ) {}
 
   loading = signal(false);
   error = signal<string | null>(null);
@@ -113,7 +116,7 @@ export class TabScoreHistoricoComponent implements OnChanges {
             decisoes: this.api.listDecisoes().pipe(catchError(() => of<Decisao[]>([]))),
           });
         }),
-        takeUntilDestroyed(),
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loading.set(false))
       )
       .subscribe({

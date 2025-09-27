@@ -1,11 +1,11 @@
-﻿import {
+import {
   AfterViewInit,
   Component,
+  DestroyRef,
   ElementRef,
   OnDestroy,
   OnInit,
   ViewChild,
-  inject,
   signal,
   computed,
 } from '@angular/core';
@@ -73,11 +73,13 @@ type MacroChart = {
   styleUrls: ['./dashboard.scss'],
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef
+  ) {}
 
   term = '';
-
-  private readonly api = inject(ApiService);
 
   empresas = signal<EmpresaSummary[]>([]);
   private currentEmpresaId: string | null = null;
@@ -189,7 +191,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadEmpresas(): void {
     this.api
       .getEmpresas()
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (lista) => {
           this.empresas.set(lista);
@@ -217,7 +219,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scoreLoading.set(true);
     this.api
       .getEmpresaScore(empresaId)
-      .pipe(takeUntilDestroyed(), finalize(() => this.scoreLoading.set(false)))
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.scoreLoading.set(false)))
       .subscribe({
         next: (score) => {
           this.scoreError.set(null);
@@ -258,7 +260,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.redeLoading.set(true);
     this.api
       .getEmpresaRede(empresaId)
-      .pipe(takeUntilDestroyed(), finalize(() => this.redeLoading.set(false)))
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.redeLoading.set(false)))
       .subscribe({
         next: (response) => {
           this.redeError.set(null);
@@ -348,7 +350,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.api
       .getMacro('selic', from)
       .pipe(
-        takeUntilDestroyed(),
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => this.macroLoading.set(false)),
         catchError((err) => {
           console.error('Erro ao carregar macro', err);
@@ -411,7 +413,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.alertasLoading.set(true);
     this.api
       .listDecisoes()
-      .pipe(takeUntilDestroyed(), finalize(() => this.alertasLoading.set(false)))
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.alertasLoading.set(false)))
       .subscribe({
         next: (lista: Decisao[]) => {
           this.alertasError.set(null);

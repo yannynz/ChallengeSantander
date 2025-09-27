@@ -54,3 +54,26 @@
 1. Rodar `docker compose up --build` para validar toda a stack com o novo carregamento (`run_all.py`) e o front-end compilado.
 2. Parametrizar credenciais e origens de CORS para ambientes além do local.
 3. Se necessário, reduzir o bundle Angular ou ajustar o `budgets` da build.
+
+## Atualizações recentes (26/set/2025)
+- Permissão de execução do `core-api/mvnw` ajustada (`chmod +x mvnw`) e suíte `./mvnw test` executada com sucesso.
+- Pytests do ETL (`DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credito_pj ../venv/bin/python -m pytest`) passaram; a suíte do ML (`ml_service`) falhou ao inserir transações fictícias no Postgres devido a foreign key em `transacao`. Ainda não há seed de empresas correspondente.
+- `npm test -- --watch=false --browsers=ChromeHeadless` executado sem falhas; `npm run build` gerou warning de budget (795 kB > 500 kB) mas produziu `dist/front-end`.
+- Componentes Angular que utilizavam `takeUntilDestroyed()` foram atualizados para injetar `DestroyRef` (Dashboard, abas de Empresa e KPIs). Byte Order Marks residuais nos arquivos `tab-*.ts` foram removidos.
+- `ApiService.resolveEmpresaId` segue retornando identificadores válidos; chamadas diretas `curl http://localhost:8080/empresas/CNPJ_00001/score` e `/rede` foram validadas.
+- Testes E2E manuais com Playwright (Ctrl remoto) mostram login funcionando, mas a navegação para `/empresa/cnpj/CNPJ_00001` ainda acusa erro `NG0203` tanto no build de desenvolvimento quanto no build estático servido via `python3 -m http.server`. O 404 ao acessar diretamente a rota no build estático decorre da ausência de fallback SPA no servidor simples.
+- Servidor HTTP temporário iniciado em `front-end/dist/front-end/browser` via `python3 -m http.server 4300`; testes encerrados posteriormente (pid não permaneceu ativo).
+
+## Atualizações recentes (27/set/2025)
+- Corrigida a origem do erro `NG0203` na rota de empresa: todos os componentes standalone relevantes (dashboard principal, página/abas de empresa e KPIs) passaram a receber `ApiService` e `DestroyRef` via injeção de construtor, eliminando uso de `inject()` fora de contexto válido durante criação em rotas lazy.
+- `EmpresaPageComponent` passou a armazenar `ParamMap` em sinal tipado para uso reativo no template preservando leitura do `ActivatedRoute` apenas no construtor.
+- Teste `ml_service/tests/test_sna.py` atualizado para criar empresas fictícias antes das transações, executar o cálculo de centralidade contra qualquer banco (`sqlite` ou Postgres real) e limpar os registros mesmo se a tabela não existir; garante compatibilidade com FK.
+- Testes executados após ajustes:
+  - Front-end: `npm test -- --watch=false --browsers=ChromeHeadless` (ok).
+  - Front-end build: `npm run build` (warning de budget permanece, build concluído).
+  - ML Service: `DATABASE_URL=sqlite:///ml_service_test.db ../venv/bin/python -m pytest` (ok, incluindo SNA).
+
+## Pendências/validações futuras
+1. Reexecutar a suíte do ML Service apontando para Postgres para validar o cenário com FKs reais (`DATABASE_URL=postgresql://...`).
+2. Repassar o fluxo Playwright/navegador para `/empresa/cnpj/...` tanto no `ng serve` quanto no build estático garantindo que o erro NG0203 não ocorre mais.
+3. (opcional) Se for necessário publicar build estático sem 404 em rotas diretas, configurar servidor com fallback SPA (ex.: nginx com `try_files`).

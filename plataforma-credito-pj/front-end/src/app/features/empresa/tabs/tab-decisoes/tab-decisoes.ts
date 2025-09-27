@@ -1,4 +1,4 @@
-﻿import { Component, Input, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Input, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -48,7 +48,10 @@ export class TabDecisoesComponent implements OnChanges {
   @Input() empresaId = '';
   @Input() cnpj = '';
 
-  private readonly api = inject(ApiService);
+  constructor(
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef
+  ) {}
 
   loading = signal(false);
   error = signal<string | null>(null);
@@ -88,7 +91,7 @@ export class TabDecisoesComponent implements OnChanges {
           }
           return this.api.listDecisoes().pipe(map((lista) => ({ resolvedId, lista })));
         }),
-        takeUntilDestroyed(),
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loading.set(false))
       )
       .subscribe({
