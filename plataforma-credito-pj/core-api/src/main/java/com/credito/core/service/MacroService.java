@@ -13,11 +13,11 @@ public class MacroService {
         this.mlClient = mlClient;
     }
 
-    public Map<String, Object> forecast(String serie, String from) {
-        return mlClient.forecast(Map.of(
-            "serie", new double[]{100, 110, 120, 130},
-            "horizonte", 3
-        ));
+    public Map<String, Object> consultar(String serie, String from, Integer horizonte) {
+        String serieNormalizada = serie == null ? null : serie.trim().toLowerCase();
+        String fromNormalizado = (from == null || from.isBlank()) ? null : from.trim();
+        Integer horizonteNormalizado = (horizonte == null || horizonte <= 0) ? null : horizonte;
+
+        return mlClient.consultarMacro(serieNormalizada, fromNormalizado, horizonteNormalizado);
     }
 }
-

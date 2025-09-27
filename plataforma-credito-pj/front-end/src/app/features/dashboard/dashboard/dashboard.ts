@@ -30,7 +30,7 @@ import {
 } from 'ng-apexcharts';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, finalize, of } from 'rxjs';
+import { catchError, finalize, map, of } from 'rxjs';
 import { DataSet, Network, Node, Edge } from 'vis-network/standalone';
 
 import {
@@ -114,6 +114,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     stroke: { curve: 'smooth', width: 3 },
     dataLabels: { enabled: false },
   });
+  macroFonte = signal<string[]>([]);
+
+  private readonly macroSeriesConfig = [
+    { id: 'selic', label: 'Selic (%)' },
+    { id: 'ipca', label: 'IPCA (%)' },
+    { id: 'pib', label: 'PIB (%)' },
+  ];
 
   alertasLoading = signal(false);
   alertasError = signal<string | null>(null);
@@ -347,14 +354,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadMacro(): void {
     this.macroLoading.set(true);
     const from = this.defaultFromDate();
+    const horizonte = 6;
+    const seriesIds = this.macroSeriesConfig.map((item) => item.id);
+
     this.api
-      .getMacro('selic', from)
+      .getMacroSeries(seriesIds, from, horizonte)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.macroLoading.set(false)),
+        map((series) => this.mergeMacroSeries(seriesIds, series)),
         catchError((err) => {
           console.error('Erro ao carregar macro', err);
           this.macroError.set('Nao foi possivel carregar dados macroeconomicos.');
+          this.macroFonte.set([]);
           this.macro.set({
             series: [],
             chart: { type: 'line', height: 260 },
@@ -362,43 +373,114 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             stroke: { curve: 'smooth', width: 3 },
             dataLabels: { enabled: false },
           });
-          return of<MacroForecast | null>(null);
-        })
+          return of<{ id: string; data: MacroForecast | null }[]>([]);
+        }),
+        finalize(() => this.macroLoading.set(false))
       )
-      .subscribe((macro) => {
-        if (!macro) {
+      .subscribe((macroList) => {
+        if (!macroList?.length) {
+          this.macroFonte.set([]);
           return;
         }
 
         this.macroError.set(null);
-        this.updateMacroChart(macro);
+        this.updateMacroChart(macroList);
       });
   }
 
-  private updateMacroChart(macro: MacroForecast): void {
-    const historico = Array.isArray(macro?.serie)
-      ? macro.serie.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-      : [];
-    const forecast = Array.isArray(macro?.forecast)
-      ? macro.forecast.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-      : [];
+  private mergeMacroSeries(
+    requestedIds: string[],
+    payload: MacroForecast[]
+  ): Array<{ id: string; data: MacroForecast | null }> {
+    const responseById = new Map<string, MacroForecast>();
+    const fallbackEntries: Array<{ id: string; data: MacroForecast | null }> = [];
 
-    const total = Math.max(1, historico.length + forecast.length);
-    const categories = Array.from({ length: total }, (_, idx) =>
-      idx < historico.length ? `H${idx + 1}` : `F${idx - historico.length + 1}`
-    );
+    for (const item of payload ?? []) {
+      if (!item) {
+        continue;
+      }
+      const key = (item.serieId ?? item.requestedSerie ?? '').toLowerCase();
+      if (key) {
+        responseById.set(key, item);
+      } else {
+        fallbackEntries.push({ id: `serie_${fallbackEntries.length}`, data: item });
+      }
+    }
 
-    const historicoData = Array.from({ length: total }, (_, idx) =>
-      idx < historico.length ? historico[idx] : null
-    );
-    const forecastData = Array.from({ length: total }, (_, idx) =>
-      idx < historico.length ? null : forecast[idx - historico.length] ?? null
-    );
+    const mapped = requestedIds.map((requested) => {
+      const key = requested.toLowerCase();
+      const data = responseById.get(key) ?? null;
+      responseById.delete(key);
+      return { id: requested, data };
+    });
 
-    const series: ApexAxisChartSeries = [
-      { name: 'Historico', data: historicoData },
-      { name: 'Forecast', data: forecastData },
-    ];
+    responseById.forEach((data, key) => {
+      if (!requestedIds.some((requested) => requested.toLowerCase() === key)) {
+        mapped.push({ id: key, data });
+      }
+    });
+
+    return mapped.concat(fallbackEntries);
+  }
+
+  private updateMacroChart(macroList: Array<{ id: string; data: MacroForecast | null }>): void {
+    const valid = macroList.filter(({ data }) => Array.isArray(data?.serie) && data?.historicoTimestamps);
+    if (!valid.length) {
+      this.macro.set({
+        series: [],
+        chart: { type: 'line', height: 260 },
+        xaxis: { categories: [] },
+        stroke: { curve: 'smooth', width: 3 },
+        dataLabels: { enabled: false },
+      });
+      this.macroFonte.set([]);
+      return;
+    }
+
+    const categoriesSet = new Set<string>();
+    valid.forEach(({ data }) => {
+      data?.historicoTimestamps?.forEach((ts) => categoriesSet.add(this.formatMacroLabel(ts)));
+      data?.forecastTimestamps?.forEach((ts) => categoriesSet.add(this.formatMacroLabel(ts)));
+    });
+
+    const categories = Array.from(categoriesSet.values()).sort((a, b) => {
+      const diff = new Date(a).valueOf() - new Date(b).valueOf();
+      return Number.isNaN(diff) ? a.localeCompare(b) : diff;
+    });
+
+    const series: ApexAxisChartSeries = valid.map(({ id, data }) => {
+      const historicoMap = new Map<string, number>();
+      const forecastMap = new Map<string, number>();
+
+      (data?.historicoTimestamps ?? []).forEach((ts, idx) => {
+        const value = data?.serie?.[idx];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          historicoMap.set(this.formatMacroLabel(ts), value);
+        }
+      });
+
+      (data?.forecastTimestamps ?? []).forEach((ts, idx) => {
+        const value = data?.forecast?.[idx];
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          forecastMap.set(this.formatMacroLabel(ts), value);
+        }
+      });
+
+      const dataset = categories.map((ts) => {
+        if (historicoMap.has(ts)) {
+          return historicoMap.get(ts) ?? null;
+        }
+        if (forecastMap.has(ts)) {
+          return forecastMap.get(ts) ?? null;
+        }
+        return null;
+      });
+
+      return {
+        name: this.resolveMacroLabel(id, data?.descricao),
+        data: dataset,
+      };
+    });
 
     this.macro.set({
       series,
@@ -407,6 +489,34 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       stroke: { curve: 'smooth', width: 3 },
       dataLabels: { enabled: false },
     });
+
+    const fontes = new Set<string>();
+    valid.forEach(({ data }) => {
+      if (data?.fonte) {
+        fontes.add(data.fonte);
+      }
+    });
+    this.macroFonte.set(Array.from(fontes.values()));
+  }
+
+  private resolveMacroLabel(id: string, descricao?: string): string {
+    const config = this.macroSeriesConfig.find((serie) => serie.id === id.toLowerCase());
+    if (config) {
+      return config.label;
+    }
+    if (descricao) {
+      return descricao;
+    }
+    return id.toUpperCase();
+  }
+
+  private formatMacroLabel(value: string | number): string {
+    const text = String(value);
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+    return text;
   }
 
   private loadAlertas(): void {

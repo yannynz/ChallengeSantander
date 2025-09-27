@@ -24,7 +24,30 @@ const apiServiceStub: Partial<ApiService> = {
   getEmpresa: () => of({ id: 'CNPJ_00001' }),
   getEmpresaScore: () => of({ score: 0 } as EmpresaScoreResponse),
   getEmpresaRede: () => of({ nodes: [], edges: [] } as EmpresaRedeResponse),
-  getMacro: () => of({ series: [], forecast: [], timestamps: [] } as MacroForecast),
+  getMacro: () =>
+    of({
+      serie: [],
+      forecast: [],
+      historicoTimestamps: [],
+      forecastTimestamps: [],
+      fonte: 'Stub Fonte',
+      serieId: 'selic',
+      descricao: 'Stub Selic',
+      ultimaAtualizacao: new Date().toISOString().slice(0, 10),
+    } as MacroForecast),
+  getMacroSeries: () =>
+    of([
+      {
+        serie: [],
+        forecast: [],
+        historicoTimestamps: [],
+        forecastTimestamps: [],
+        fonte: 'Stub Fonte',
+        serieId: 'selic',
+        descricao: 'Stub Selic',
+        ultimaAtualizacao: new Date().toISOString().slice(0, 10),
+      } as MacroForecast,
+    ]),
   listDecisoes: () => of<Decisao[]>([]),
   criarDecisao: (empresaId: string) => of({
     id: '1',

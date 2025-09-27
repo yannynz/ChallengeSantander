@@ -89,7 +89,9 @@ export class TabDecisoesComponent implements OnChanges {
             this.error.set('Empresa nao encontrada.');
             return of({ resolvedId: '', lista: [] as Decisao[] });
           }
-          return this.api.listDecisoes().pipe(map((lista) => ({ resolvedId, lista })));
+          return this.api
+            .listDecisoes(resolvedId, 50)
+            .pipe(map((lista) => ({ resolvedId, lista })));
         }),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loading.set(false))

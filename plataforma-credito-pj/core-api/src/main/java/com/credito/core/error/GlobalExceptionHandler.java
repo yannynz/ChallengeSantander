@@ -33,7 +33,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ProblemDetail generic(Exception ex) {
+        if (ex instanceof ErrorResponseException errorResponseException) {
+            throw errorResponseException;
+        }
         return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
     }
 }
-

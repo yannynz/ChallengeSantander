@@ -50,6 +50,13 @@
       [stroke]="macro().stroke"
       [dataLabels]="macro().dataLabels">
     </apx-chart>
+    <div
+      *ngIf="!macroLoading() && !macroError() && macroFonte().length"
+      class="px-2 pb-2 text-xs"
+      style="color:#64748b;"
+    >
+      Fonte: {{ macroFonte().join(', ') }}
+    </div>
   </mat-card>
 
   <mat-card class="col">

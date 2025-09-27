@@ -46,6 +46,20 @@ export interface MacroForecast {
   forecast?: number[];
   horizonte?: number;
   timestamps?: Array<string | number>;
+  historicoTimestamps?: string[];
+  forecastTimestamps?: string[];
+  fonte?: string;
+  serieId?: string;
+  descricao?: string;
+  ultimaAtualizacao?: string;
+  requestedSerie?: string;
+  [key: string]: unknown;
+}
+
+export interface MacroSeriesResponse {
+  series?: MacroForecast[];
+  requested?: string[];
+  count?: number;
   [key: string]: unknown;
 }
 
@@ -82,13 +96,52 @@ export class ApiService {
     return this.http.get<EmpresaRedeResponse>(`${this.base}/empresas/${idOrCnpj}/rede`);
   }
 
-  getMacro(serie: string, from: string): Observable<MacroForecast> {
-    const params = new HttpParams().set('serie', serie).set('from', from);
+  getMacro(serie: string, from: string, horizonte?: number): Observable<MacroForecast> {
+    const series = this.normalizeMacroSeries([serie]);
+    if (!series.length) {
+      return of({} as MacroForecast);
+    }
+
+    const params = this.buildMacroParams(series, from, horizonte);
     return this.http.get<MacroForecast>(`${this.base}/macro`, { params });
   }
 
-  listDecisoes(): Observable<Decisao[]> {
-    return this.http.get<Decisao[]>(`${this.base}/decisoes`);
+  getMacroSeries(series: string[], from: string, horizonte?: number): Observable<MacroForecast[]> {
+    const normalized = this.normalizeMacroSeries(series);
+    if (!normalized.length) {
+      return of([]);
+    }
+
+    const params = this.buildMacroParams(normalized, from, horizonte);
+    return this.http
+      .get<MacroSeriesResponse | MacroForecast>(`${this.base}/macro`, { params })
+      .pipe(
+        map((response) => {
+          if (response && typeof response === 'object' && !Array.isArray(response)) {
+            const multi = response as MacroSeriesResponse;
+            if (Array.isArray(multi.series)) {
+              return multi.series.filter((item): item is MacroForecast => !!item);
+            }
+          }
+          if (response && typeof response === 'object') {
+            return [response as MacroForecast];
+          }
+          return [];
+        })
+      );
+  }
+
+  listDecisoes(empresaId?: string, limit?: number): Observable<Decisao[]> {
+    let params = new HttpParams();
+    if (empresaId) {
+      params = params.set('empresaId', empresaId);
+    }
+    if (typeof limit === 'number' && limit > 0) {
+      params = params.set('limit', `${limit}`);
+    }
+
+    const options = params.keys().length ? { params } : {};
+    return this.http.get<Decisao[]>(`${this.base}/decisoes`, options);
   }
 
   criarDecisao(empresaId: string): Observable<Decisao> {
@@ -191,5 +244,30 @@ export class ApiService {
       defaultIfEmpty(fallback),
       take(1)
     );
+  }
+
+  private normalizeMacroSeries(series: string[]): string[] {
+    const normalized = new Set<string>();
+    for (const raw of series ?? []) {
+      const trimmed = (raw ?? '').trim().toLowerCase();
+      if (trimmed) {
+        normalized.add(trimmed);
+      }
+    }
+    return Array.from(normalized.values());
+  }
+
+  private buildMacroParams(series: string[], from: string, horizonte?: number): HttpParams {
+    let params = new HttpParams();
+    for (const serie of series) {
+      params = params.append('serie', serie);
+    }
+    if (from) {
+      params = params.set('from', from);
+    }
+    if (typeof horizonte === 'number' && horizonte > 0) {
+      params = params.set('horizonte', `${horizonte}`);
+    }
+    return params;
   }
 }

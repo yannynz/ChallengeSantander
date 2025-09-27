@@ -68,42 +68,67 @@ public class EmpresaController {
     @GetMapping("/{identifier}/score")
     public Map<String, Object> getScore(@PathVariable String identifier) {
         Empresa empresa = resolveEmpresa(identifier);
-        EmpresaFinanceiro financeiro = financeiroRepo.findTopByEmpresaIdOrderByDtRefDesc(empresa.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Nenhum dado financeiro encontrado para a empresa " + empresa.getId()));
+        List<EmpresaFinanceiro> historicoFinanceiro = financeiroRepo
+                .findByEmpresaIdOrderByDtRefAsc(empresa.getId());
 
-        int idade = calcularIdade(empresa.getDtAbrt());
-        double faturamento = Optional.ofNullable(financeiro.getVlFatu()).orElse(0.0d);
-        double saldo = Optional.ofNullable(financeiro.getVlSldo()).orElse(0.0d);
+        if (historicoFinanceiro.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Nenhum dado financeiro encontrado para a empresa " + empresa.getId());
+        }
 
-        Map<String, Object> features = Map.of(
-                "idade", idade,
-                "vl_fatu", faturamento,
-                "vl_sldo", saldo
-        );
+        List<Double> historicoValores = new ArrayList<>();
+        List<String> historicoInstantes = new ArrayList<>();
 
-        Map<String, Object> payload = Map.of(
-                "features", features,
-                "modelo", "rf"
-        );
+        Map<String, Object> ultimoFeatures = null;
+        Map<String, Object> ultimoMlResponse = null;
+        LocalDateTime ultimaData = null;
 
-        Map<String, Object> mlResponse = mlClient.calcularScore(payload);
-        double scoreValue = toDouble(mlResponse.get("score"));
+        for (EmpresaFinanceiro registro : historicoFinanceiro) {
+            Map<String, Object> featuresRegistro = buildFeaturesParaPeriodo(
+                    empresa,
+                    registro
+            );
+
+            Map<String, Object> mlResponse = mlClient.calcularScore(Map.of(
+                    "features", featuresRegistro,
+                    "modelo", "rf"
+            ));
+
+            double valor = toDouble(mlResponse.get("score"));
+            LocalDateTime referencia = Optional.ofNullable(registro.getDtRef())
+                    .map(data -> data.atStartOfDay())
+                    .orElse(LocalDateTime.now());
+
+            historicoValores.add(valor);
+            historicoInstantes.add(referencia.toString());
+
+            ultimoFeatures = featuresRegistro;
+            ultimoMlResponse = mlResponse;
+            ultimaData = referencia;
+        }
+
+        if (ultimoMlResponse == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Falha ao calcular score.");
+        }
 
         ScoreRisco score = new ScoreRisco();
         score.setEmpresaId(empresa.getId());
-        score.setScore(scoreValue);
-        score.setModelo(asString(mlResponse.get("modelo"), "rf"));
-        score.setVersao(asString(mlResponse.get("versao"), null));
-        score.setDtCalc(LocalDateTime.now());
+        score.setScore(toDouble(ultimoMlResponse.get("score")));
+        score.setModelo(asString(ultimoMlResponse.get("modelo"), "rf"));
+        score.setVersao(asString(ultimoMlResponse.get("versao"), null));
+        score.setDtCalc(Optional.ofNullable(ultimaData).orElse(LocalDateTime.now()));
         scoreRiscoRepo.save(score);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("empresaId", empresa.getId());
         response.put("cnpj", empresa.getCnpj());
-        response.put("features", features);
-        response.putAll(mlResponse);
+        response.put("features", ultimoFeatures);
+        response.putAll(ultimoMlResponse);
+        response.put("historico", historicoValores);
+        response.put("historicoTimestamps", historicoInstantes);
+        response.put("ultimaAtualizacaoScore", ultimaData);
+
         return response;
     }
 
@@ -204,11 +229,24 @@ public class EmpresaController {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Empresa não encontrada: " + identifier);
     }
 
-    private static int calcularIdade(LocalDate abertura) {
+    private static Map<String, Object> buildFeaturesParaPeriodo(Empresa empresa, EmpresaFinanceiro registro) {
+        int idadeNoPeriodo = calcularIdadeNoPeriodo(empresa.getDtAbrt(), registro.getDtRef());
+        double faturamento = Optional.ofNullable(registro.getVlFatu()).orElse(0.0d);
+        double saldo = Optional.ofNullable(registro.getVlSldo()).orElse(0.0d);
+
+        return Map.of(
+                "idade", idadeNoPeriodo,
+                "vl_fatu", faturamento,
+                "vl_sldo", saldo
+        );
+    }
+
+    private static int calcularIdadeNoPeriodo(LocalDate abertura, LocalDate referencia) {
+        LocalDate baseReferencia = Optional.ofNullable(referencia).orElse(LocalDate.now());
         if (abertura == null) {
             return 0;
         }
-        return Math.max(0, Period.between(abertura, LocalDate.now()).getYears());
+        return Math.max(0, Period.between(abertura, baseReferencia).getYears());
     }
 
     private static Map<String, Double> agruparTransacoes(List<Transacao> transacoes) {

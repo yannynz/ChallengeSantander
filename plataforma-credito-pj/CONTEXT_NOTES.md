@@ -73,6 +73,13 @@
   - Front-end build: `npm run build` (warning de budget permanece, build concluído).
   - ML Service: `DATABASE_URL=sqlite:///ml_service_test.db ../venv/bin/python -m pytest` (ok, incluindo SNA).
 
+## Atualizações recentes (28/set/2025)
+- `ml_service/macro.py` ganhou cache híbrido (memória + persistência via tabela `macro_cache`), TTL configurável (`MACRO_CACHE_MINUTES`) e parametrização de timeout HTTP; testes cobrem reutilização do cache persistente.
+- Novas APIs de macro suportam múltiplas séries agregadas e front-end (`DashboardComponent`) passou a consumir lote único via `getMacroSeries`, alinhando o overlay BACEN/IBGE descrito no PRD.
+- `core-api`: `/empresas/{id}/score` agora recalcula os scores para todas as referências financeiras ingeridas da Base 1 (`empresa_financeiro`), produzindo séries temporais consistentes (`historico`, `historicoTimestamps`, `ultimaAtualizacaoScore`) e armazenando o snapshot mais recente em `score_risco`; `/decisoes` aceita filtro `empresaId`/`limit` e gera automaticamente uma nova decisão via `DecisaoService` quando não existe registro prévio para a empresa.
+- `front-end`: abas de Empresa passaram a solicitar decisões filtradas e reaproveitam o histórico retornado pelo score para montar o gráfico de evolução; stubs de teste foram atualizados (score/histórico deixa de ficar vazio ao consultar qualquer CNPJ).
+- Script `ml_service/prewarm_macro_cache.py` define a política recomendada de pré-aquecimento (executar diariamente às 05h BRT para SELIC/IPCA/PIB com horizonte de 6 meses e cache de 12h). Para ativar na produção, configurar `MACRO_CACHE_BACKEND=database`, `MACRO_CACHE_MINUTES=720` e agendar o script via cron/task runner.
+
 ## Pendências/validações futuras
 1. Reexecutar a suíte do ML Service apontando para Postgres para validar o cenário com FKs reais (`DATABASE_URL=postgresql://...`).
 2. Repassar o fluxo Playwright/navegador para `/empresa/cnpj/...` tanto no `ng serve` quanto no build estático garantindo que o erro NG0203 não ocorre mais.

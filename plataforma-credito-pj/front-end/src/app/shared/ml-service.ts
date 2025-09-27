@@ -14,6 +14,6 @@ export class MlService {
 
   forecastArima(serie: string, horizonte: number, from?: string): Observable<MacroForecast> {
     const reference = from ?? new Date().toISOString().slice(0, 10);
-    return this.api.getMacro(serie, reference);
+    return this.api.getMacro(serie, reference, horizonte);
   }
 }

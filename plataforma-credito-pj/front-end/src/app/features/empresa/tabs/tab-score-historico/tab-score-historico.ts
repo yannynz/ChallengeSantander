@@ -113,7 +113,9 @@ export class TabScoreHistoricoComponent implements OnChanges {
           return forkJoin({
             resolvedId: of(resolvedId),
             score: this.api.getEmpresaScore(resolvedId),
-            decisoes: this.api.listDecisoes().pipe(catchError(() => of<Decisao[]>([]))),
+            decisoes: this.api
+              .listDecisoes(resolvedId, 50)
+              .pipe(catchError(() => of<Decisao[]>([]))),
           });
         }),
         takeUntilDestroyed(this.destroyRef),
@@ -166,8 +168,12 @@ export class TabScoreHistoricoComponent implements OnChanges {
     }
 
     if (!values.length && Array.isArray(score?.historico) && score.historico?.length) {
+      const timestamps = Array.isArray(score?.['historicoTimestamps']) ? score['historicoTimestamps'] : [];
       score.historico.forEach((point, index) => {
-        categories.push(`P${index + 1}`);
+        const label = timestamps[index]
+          ? this.formatDateLabel(timestamps[index])
+          : `P${index + 1}`;
+        categories.push(label);
         values.push(this.toPercent(point));
       });
     }
@@ -198,5 +204,13 @@ export class TabScoreHistoricoComponent implements OnChanges {
     }
 
     return numeric > 1 ? Number(numeric.toFixed(2)) : Number((numeric * 100).toFixed(2));
+  }
+
+  private formatDateLabel(value: string): string {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleString('pt-BR');
   }
 }
