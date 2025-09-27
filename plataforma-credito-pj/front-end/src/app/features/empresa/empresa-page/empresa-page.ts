@@ -1,6 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, WritableSignal, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, ParamMap } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 
@@ -44,10 +44,13 @@ import { TabDecisoesComponent } from '../tabs/tab-decisoes/tab-decisoes';
   `
 })
 export class EmpresaPageComponent {
-  private route = inject(ActivatedRoute);
-  private params = signal(this.route.snapshot.paramMap);
+  private readonly params: WritableSignal<ParamMap>;
 
   // sinais simples para usar no template
-  id = computed(() => this.params().get('id') ?? '');
-  cnpj = computed(() => this.params().get('cnpj') ?? '');
+  readonly id = computed(() => this.params().get('id') ?? '');
+  readonly cnpj = computed(() => this.params().get('cnpj') ?? '');
+
+  constructor(private readonly route: ActivatedRoute) {
+    this.params = signal(this.route.snapshot.paramMap);
+  }
 }

@@ -1,13 +1,13 @@
-﻿import {
+import {
   AfterViewInit,
   Component,
+  DestroyRef,
   ElementRef,
   Input,
   OnChanges,
   OnDestroy,
   SimpleChanges,
   ViewChild,
-  inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -47,7 +47,10 @@ export class TabRedeComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   @ViewChild('graph', { static: true }) graphEl!: ElementRef<HTMLDivElement>;
 
-  private readonly api = inject(ApiService);
+  constructor(
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef
+  ) {}
   private network?: Network;
   private viewReady = false;
   private currentEmpresaId: string | null = null;
@@ -110,7 +113,7 @@ export class TabRedeComponent implements AfterViewInit, OnChanges, OnDestroy {
           }
           return this.api.getEmpresaRede(resolvedId);
         }),
-        takeUntilDestroyed(),
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loading.set(false))
       )
       .subscribe({

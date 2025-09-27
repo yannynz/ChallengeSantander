@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -14,7 +14,10 @@ import { ApiService, Decisao } from '../../../shared/api';
   imports: [CommonModule, MatCardModule],
 })
 export class KpisComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  constructor(
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef
+  ) {}
 
   loading = signal(false);
   error = signal<string | null>(null);
@@ -54,7 +57,7 @@ export class KpisComponent implements OnInit {
     this.loading.set(true);
     this.api
       .listDecisoes()
-      .pipe(takeUntilDestroyed(), finalize(() => this.loading.set(false)))
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.loading.set(false)))
       .subscribe({
         next: (lista) => {
           this.error.set(null);
