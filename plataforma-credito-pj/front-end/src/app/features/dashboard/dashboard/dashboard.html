@@ -16,11 +16,15 @@
     <div *ngIf="scoreLoading()" class="px-2 py-2 text-sm">Carregando score...</div>
     <div *ngIf="!scoreLoading() && scoreError()" class="px-2 py-2 text-sm" style="color:#b91c1c;">{{ scoreError() }}</div>
     <ng-container *ngIf="!scoreLoading() && !scoreError()">
+      <div class="px-2 pb-1 text-sm">Score atual: {{ scoreCurrent() }}</div>
       <apx-chart
-        [series]="scoreOpts().series"
-        [chart]="scoreOpts().chart"
-        [plotOptions]="scoreOpts().plotOptions"
-        [labels]="scoreOpts().labels">
+        [series]="scoreChart().series"
+        [chart]="scoreChart().chart"
+        [xaxis]="scoreChart().xaxis"
+        [stroke]="scoreChart().stroke"
+        [dataLabels]="scoreChart().dataLabels"
+        [yaxis]="scoreChart().yaxis"
+        [markers]="scoreChart().markers">
       </apx-chart>
       <div class="px-2 pb-2 text-sm">{{ scoreSubtitle() }}</div>
     </ng-container>

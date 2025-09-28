@@ -26,7 +26,8 @@ import {
   ApexStroke,
   ApexDataLabels,
   ApexPlotOptions,
-  ApexNonAxisChartSeries,
+  ApexYAxis,
+  ApexMarkers,
 } from 'ng-apexcharts';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -42,11 +43,14 @@ import {
   MacroForecast,
 } from '../../../shared/api';
 
-type RadialChartOptions = {
-  series: ApexNonAxisChartSeries;
+type ScoreChartOptions = {
+  series: ApexAxisChartSeries;
   chart: ApexChart;
-  plotOptions: ApexPlotOptions;
-  labels: string[];
+  xaxis: ApexXAxis;
+  stroke: ApexStroke;
+  dataLabels: ApexDataLabels;
+  yaxis: ApexYAxis;
+  markers: ApexMarkers;
 };
 
 type MacroChart = {
@@ -87,7 +91,15 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   scoreLoading = signal(false);
   scoreError = signal<string | null>(null);
   scoreInfo = signal<EmpresaScoreResponse | null>(null);
-  scoreOpts = signal<RadialChartOptions>(this.createRadialOptions(0, 'Score'));
+  scoreChart = signal<ScoreChartOptions>(this.createScoreChart([], []));
+  scoreCurrent = computed(() => {
+    const info = this.scoreInfo();
+    if (!info) {
+      return '--';
+    }
+    const percent = this.toPercent(info.score);
+    return `${percent.toFixed(1)}%`;
+  });
   scoreSubtitle = computed(() => {
     const info = this.scoreInfo();
     if (!info) {
@@ -223,30 +235,23 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadScore(empresaId: string): void {
+    console.debug('[Dashboard] Solicitando score para empresa', empresaId);
     this.scoreLoading.set(true);
     this.api
       .getEmpresaScore(empresaId)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.scoreLoading.set(false)))
       .subscribe({
         next: (score) => {
+          console.debug('[Dashboard] Score recebido', score);
           this.scoreError.set(null);
           this.scoreInfo.set(score);
-          const percent = this.toPercent(score?.score);
-          const labelParts: string[] = [];
-          if (score?.modelo) {
-            labelParts.push(`Modelo ${score.modelo}`);
-          }
-          if (score?.versao) {
-            labelParts.push(`v${score.versao}`);
-          }
-          const label = labelParts.length ? labelParts.join(' ') : 'Score atual';
-          this.scoreOpts.set(this.createRadialOptions(percent, label));
+          this.updateScoreChart(score);
         },
         error: (err) => {
           console.error('Erro ao carregar score', err);
           this.scoreError.set('Nao foi possivel carregar o score.');
           this.scoreInfo.set(null);
-          this.scoreOpts.set(this.createRadialOptions(0, 'Score'));
+          this.scoreChart.set(this.createScoreChart([], []));
         },
       });
   }
@@ -559,33 +564,78 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     return date.toISOString().slice(0, 10);
   }
 
-  private createRadialOptions(value: number, label: string): RadialChartOptions {
-    const normalized = Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
-    return {
-      series: [normalized],
-      chart: { type: 'radialBar', height: 260 },
-      plotOptions: {
-        radialBar: {
-          hollow: { size: '65%' },
-          dataLabels: {
-            value: {
-              formatter: (v: number) => `${v.toFixed(1)}%`,
-            },
-          },
-        },
-      },
-      labels: [label],
-    };
-  }
-
   private toPercent(value: number | null | undefined): number {
     if (value === null || value === undefined) {
+      console.warn('[Dashboard] Valor de score ausente, assumindo 0');
       return 0;
     }
     const numeric = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(numeric)) {
+      console.warn('[Dashboard] Valor de score inválido, assumindo 0', value);
       return 0;
     }
-    return numeric > 1 ? numeric : numeric * 100;
+    const scaled = numeric > 1 ? numeric : numeric * 100;
+    return Number(scaled.toFixed(2));
+  }
+
+  private updateScoreChart(score: EmpresaScoreResponse | null): void {
+    if (!score) {
+      this.scoreChart.set(this.createScoreChart([], []));
+      return;
+    }
+
+    const points: Array<{ label: string; value: number }> = [];
+    const historico = Array.isArray(score.historico) ? score.historico : [];
+    const timestamps = Array.isArray((score as Record<string, unknown>)['historicoTimestamps'])
+      ? ((score as Record<string, unknown>)['historicoTimestamps'] as unknown[])
+      : [];
+
+    historico.forEach((rawValue, index) => {
+      const value = this.toPercent(rawValue as number | null | undefined);
+      const label = this.formatDateLabel(timestamps[index]) || `P${index + 1}`;
+      points.push({ label, value });
+    });
+
+    if (!points.length) {
+      const fallbackLabel = this.formatDateLabel((score as Record<string, unknown>)['ultimaAtualizacaoScore']) || 'Atual';
+      points.push({ label: fallbackLabel, value: this.toPercent(score.score) });
+    }
+
+    if (!points.length) {
+      console.warn('[Dashboard] Historico de score ausente para grafico.');
+      this.scoreChart.set(this.createScoreChart([], []));
+      return;
+    }
+
+    const categories = points.map((point) => point.label);
+    const data = points.map((point) => point.value);
+    console.debug('[Dashboard] Atualizando grafico de score', { categories, data });
+    this.scoreChart.set(this.createScoreChart(data, categories));
+  }
+
+  private formatDateLabel(value: unknown): string {
+    if (!value) {
+      return '';
+    }
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? '' : value.toLocaleDateString('pt-BR');
+    }
+    const parsed = new Date(value as string | number);
+    if (Number.isNaN(parsed.getTime())) {
+      return typeof value === 'string' ? value : '';
+    }
+    return parsed.toLocaleDateString('pt-BR');
+  }
+
+  private createScoreChart(data: number[], categories: string[]): ScoreChartOptions {
+    return {
+      series: [{ name: 'Score', data }],
+      chart: { type: 'line', height: 260, toolbar: { show: false } },
+      xaxis: { categories, type: 'category' },
+      stroke: { curve: 'smooth', width: 3 },
+      dataLabels: { enabled: false },
+      yaxis: { min: 0, max: 100, labels: { formatter: (val: number) => `${val.toFixed(0)}%` } },
+      markers: { size: 4 },
+    };
   }
 }

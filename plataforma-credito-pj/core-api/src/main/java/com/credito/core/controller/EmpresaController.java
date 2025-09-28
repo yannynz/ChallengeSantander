@@ -71,8 +71,14 @@ public class EmpresaController {
     @GetMapping("/{identifier}/score")
     public Map<String, Object> getScore(@PathVariable String identifier) {
         Empresa empresa = empresaResolver.resolve(identifier);
+        log.info("[SCORE] Resolvendo score para identifier={} -> empresaId={} cnpj={}",
+                identifier, empresa.getId(), empresa.getCnpj());
+
         List<EmpresaFinanceiro> historicoFinanceiro = financeiroRepo
                 .findByEmpresaIdOrderByDtRefAsc(empresa.getId());
+
+        log.info("[SCORE] Registros financeiros encontrados para {}: {}", empresa.getId(),
+                historicoFinanceiro.size());
 
         if (historicoFinanceiro.isEmpty()) {
             throw new ResponseStatusException(
@@ -87,11 +93,16 @@ public class EmpresaController {
         Map<String, Object> ultimoMlResponse = null;
         LocalDateTime ultimaData = null;
 
+        int indice = 0;
         for (EmpresaFinanceiro registro : historicoFinanceiro) {
+            indice++;
             Map<String, Object> featuresRegistro = buildFeaturesParaPeriodo(
                     empresa,
                     registro
             );
+
+            log.debug("[SCORE] Features periodo#{} para {} -> {}", indice, empresa.getId(),
+                    featuresRegistro);
 
             Map<String, Object> mlResponse = mlClient.calcularScore(Map.of(
                     "features", featuresRegistro,
@@ -99,6 +110,13 @@ public class EmpresaController {
             ));
 
             double valor = toDouble(mlResponse.get("score"));
+            if (!Double.isFinite(valor)) {
+                log.warn("[SCORE] ML retornou score não numérico para {} no periodo#{}: {}", 
+                        empresa.getId(), indice, mlResponse.get("score"));
+            }
+
+            log.debug("[SCORE] Resposta ML periodo#{} para {} -> {}", indice, empresa.getId(),
+                    mlResponse);
             LocalDateTime referencia = Optional.ofNullable(registro.getDtRef())
                     .map(data -> data.atStartOfDay())
                     .orElse(LocalDateTime.now());
@@ -115,13 +133,22 @@ public class EmpresaController {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Falha ao calcular score.");
         }
 
+        double ultimoScore = toDouble(ultimoMlResponse.get("score"));
+        log.info("[SCORE] Score final calculado para {} = {} (modelo={}, versao={})",
+                empresa.getId(), ultimoScore,
+                ultimoMlResponse.getOrDefault("modelo", "rf"),
+                ultimoMlResponse.getOrDefault("versao", "desconhecida"));
+
         ScoreRisco score = new ScoreRisco();
         score.setEmpresaId(empresa.getId());
-        score.setScore(toDouble(ultimoMlResponse.get("score")));
+        score.setScore(ultimoScore);
         score.setModelo(asString(ultimoMlResponse.get("modelo"), "rf"));
         score.setVersao(asString(ultimoMlResponse.get("versao"), null));
         score.setDtCalc(Optional.ofNullable(ultimaData).orElse(LocalDateTime.now()));
         scoreRiscoRepo.save(score);
+
+        log.info("[SCORE] Score persistido para {} em {} (modelo={}, versao={})",
+                empresa.getId(), score.getDtCalc(), score.getModelo(), score.getVersao());
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("empresaId", empresa.getId());
