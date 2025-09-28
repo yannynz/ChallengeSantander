@@ -18,7 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/decisoes")
@@ -55,28 +59,59 @@ public class DecisaoController {
         if (empresaId != null && !empresaId.trim().isEmpty()) {
             Empresa empresa = empresaResolver.resolve(empresaId);
             String resolvedId = empresa.getId();
-            List<DecisaoCredito> registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(resolvedId);
+            DecisaoCredito atual = decisaoService.obterDecisaoAtualPorId(resolvedId);
 
-            if (registros.isEmpty()) {
+            if (atual == null) {
                 try {
                     log.info("Nenhuma decisão encontrada para {}. Gerando automaticamente via serviço de crédito.", resolvedId);
                     decisaoService.decidir(resolvedId);
+                    atual = decisaoService.obterDecisaoAtualPorId(resolvedId);
                 } catch (Exception ex) {
                     log.warn("Falha ao gerar decisão automática para {}: {}", resolvedId, ex.getMessage());
                 }
-
-                registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(resolvedId);
             }
 
-            return registros.stream()
-                    .limit(take)
-                    .toList();
+            if (atual == null) {
+                return List.of();
+            }
+
+            return List.of(atual);
         }
 
-        return decisaoRepo.findAll()
+        Comparator<DecisaoCredito> porDataDesc = Comparator
+                .comparing(DecisaoCredito::getDtDecisao, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed();
+
+        List<DecisaoCredito> todos = decisaoRepo.findAll()
                 .stream()
-                .sorted((a, b) -> b.getDtDecisao().compareTo(a.getDtDecisao()))
-                .limit(take)
+                .sorted(porDataDesc)
                 .toList();
+
+        List<DecisaoCredito> resposta = new ArrayList<>();
+        Set<String> vistos = new HashSet<>();
+
+        for (DecisaoCredito registro : todos) {
+            if (resposta.size() >= take) {
+                break;
+            }
+
+            String key = registro.getEmpresaId();
+            if (key == null || key.trim().isEmpty()) {
+                resposta.add(registro);
+                continue;
+            }
+
+            if (vistos.contains(key)) {
+                continue;
+            }
+
+            DecisaoCredito principal = decisaoService.obterDecisaoAtualPorId(key);
+            if (principal != null) {
+                resposta.add(principal);
+                vistos.add(key);
+            }
+        }
+
+        return resposta;
     }
 }

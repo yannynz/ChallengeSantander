@@ -12,6 +12,9 @@ import {
   ApexPlotOptions,
   ApexYAxis,
   ApexMarkers,
+  ApexLegend,
+  ApexTooltip,
+  ApexGrid,
 } from 'ng-apexcharts';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
@@ -42,6 +45,11 @@ type MacroChart = {
   xaxis: ApexXAxis;
   stroke: ApexStroke;
   dataLabels: ApexDataLabels;
+  yaxis: ApexYAxis;
+  legend: ApexLegend;
+  tooltip: ApexTooltip;
+  colors: string[];
+  grid: ApexGrid;
 };
 
 type ViewState = 'initial' | 'loading' | 'ready' | 'error';
@@ -90,13 +98,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   macroLoading = signal(false);
   macroError = signal<string | null>(null);
-  macro = signal<MacroChart>({
-    series: [],
-    chart: { type: 'line', height: 260 },
-    xaxis: { categories: [] },
-    stroke: { curve: 'smooth', width: 3 },
-    dataLabels: { enabled: false },
-  });
+  macro = signal<MacroChart>(this.createEmptyMacroChart());
 
   alertasLoading = signal(false);
   alertasError = signal<string | null>(null);
@@ -113,6 +115,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private network?: Network;
   private pendingRedeId: string | null = null;
   private graphHost?: ElementRef<HTMLDivElement>;
+  private readonly macroColors: Record<string, string> = {
+    selic: '#2563eb',
+    ipca: '#16a34a',
+    pib: '#f97316',
+  };
 
   constructor(
     private readonly api: ApiService,
@@ -245,20 +252,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     const baseParams: Record<string, string> = term ? { term } : {};
-
-    if (section === 'rede') {
-      this.router.navigate(['/empresa', this.currentEmpresaId], { queryParams: { ...baseParams, tab: 'rede' } });
+    if (section === 'score' || section === 'rede' || section === 'decisoes') {
+      const focus = section === 'score' ? 'score' : section;
+      void this.router.navigate(['/empresa', this.currentEmpresaId], {
+        queryParams: { ...baseParams, tab: focus, focus },
+      });
       return;
     }
-
-    if (section === 'decisoes') {
-      this.router.navigate(['/empresa', this.currentEmpresaId], { queryParams: { ...baseParams, tab: 'decisoes' } });
-      return;
-    }
-
-    this.router.navigate(['/empresa', this.currentEmpresaId], {
-      queryParams: Object.keys(baseParams).length ? baseParams : undefined,
-    });
   }
 
   private resetDataStates(): void {
@@ -276,13 +276,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.macroLoading.set(false);
     this.macroError.set(null);
-    this.macro.set({
-      series: [],
-      chart: { type: 'line', height: 260 },
-      xaxis: { categories: [] },
-      stroke: { curve: 'smooth', width: 3 },
-      dataLabels: { enabled: false },
-    });
+    this.macro.set(this.createEmptyMacroChart());
 
     this.alertasLoading.set(false);
     this.alertasError.set(null);
@@ -416,64 +410,66 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.macroLoading.set(true);
     const from = this.defaultFromDate();
     this.api
-      .getMacro('selic', from)
+      .getMacroSeries(['selic', 'ipca', 'pib'], from, 6)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.macroLoading.set(false)),
         catchError((err) => {
           console.error('Erro ao carregar macro', err);
           this.macroError.set('Nao foi possivel carregar dados macroeconomicos.');
-          this.macro.set({
-            series: [],
-            chart: { type: 'line', height: 260 },
-            xaxis: { categories: [] },
-            stroke: { curve: 'smooth', width: 3 },
-            dataLabels: { enabled: false },
-          });
-          return of<MacroForecast | null>(null);
+          this.macro.set(this.createEmptyMacroChart());
+          return of<MacroForecast[] | null>(null);
         })
       )
-      .subscribe((macro) => {
-        if (!macro) {
+      .subscribe((series) => {
+        if (!series?.length) {
+          this.macroError.set('Nao foi possivel encontrar dados macroeconomicos.');
           return;
         }
 
         this.macroError.set(null);
-        this.updateMacroChart(macro);
+        this.updateMacroChart(series);
       });
   }
 
-  private updateMacroChart(macro: MacroForecast): void {
-    const historico = Array.isArray(macro?.serie)
-      ? macro.serie.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-      : [];
-    const forecast = Array.isArray(macro?.forecast)
-      ? macro.forecast.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-      : [];
+  private updateMacroChart(seriesList: MacroForecast[]): void {
+    const dashArray: number[] = [];
+    const colors: string[] = [];
+    const series: ApexAxisChartSeries = [];
 
-    const total = Math.max(1, historico.length + forecast.length);
-    const categories = Array.from({ length: total }, (_, idx) =>
-      idx < historico.length ? `H${idx + 1}` : `F${idx - historico.length + 1}`
-    );
+    seriesList.forEach((item) => {
+      const serieId = this.normalizeMacroId(item);
+      const label = this.resolveMacroLabel(serieId, item);
+      const color = this.resolveMacroColor(serieId);
 
-    const historicoData = Array.from({ length: total }, (_, idx) =>
-      idx < historico.length ? historico[idx] : null
-    );
-    const forecastData = Array.from({ length: total }, (_, idx) =>
-      idx < historico.length ? null : forecast[idx - historico.length] ?? null
-    );
+      const historico = this.toMacroSeriesPoints(item.serie, item.historicoTimestamps ?? item.timestamps);
+      if (historico.length) {
+        series.push({ name: `${label} (Historico)`, data: historico });
+        dashArray.push(0);
+        colors.push(color);
+      }
 
-    const series: ApexAxisChartSeries = [
-      { name: 'Historico', data: historicoData },
-      { name: 'Forecast', data: forecastData },
-    ];
+      const forecast = this.toMacroSeriesPoints(item.forecast, item.forecastTimestamps);
+      if (forecast.length) {
+        const linked = this.linkForecastToHistory(historico, forecast);
+        series.push({ name: `${label} (Forecast)`, data: linked });
+        dashArray.push(6);
+        colors.push(color);
+      }
+    });
 
+    if (!series.length) {
+      this.macroError.set('Nao foi possivel encontrar dados macroeconomicos.');
+      this.macro.set(this.createEmptyMacroChart());
+      return;
+    }
+
+    const base = this.createEmptyMacroChart();
     this.macro.set({
+      ...base,
       series,
-      chart: { type: 'line', height: 260 },
-      xaxis: { categories },
-      stroke: { curve: 'smooth', width: 3 },
-      dataLabels: { enabled: false },
+      stroke: { ...base.stroke, dashArray },
+      colors,
     });
   }
 
@@ -515,6 +511,144 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const date = new Date();
     date.setMonth(date.getMonth() - 12);
     return date.toISOString().slice(0, 10);
+  }
+
+  private createEmptyMacroChart(): MacroChart {
+    const percentFormatter = (value: number): string => {
+      if (!Number.isFinite(value)) {
+        return '--';
+      }
+      return `${value.toFixed(2)}%`;
+    };
+
+    return {
+      series: [],
+      chart: { type: 'line', height: 320, toolbar: { show: false } },
+      xaxis: {
+        type: 'datetime',
+        categories: [],
+        labels: {
+          datetimeFormatter: {
+            month: "MMM 'yy",
+            year: 'yyyy',
+          },
+        },
+      },
+      stroke: { curve: 'smooth', width: 2.5, dashArray: [] },
+      dataLabels: { enabled: false },
+      yaxis: {
+        labels: {
+          formatter: percentFormatter,
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'center',
+        itemMargin: { horizontal: 12 },
+      },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        x: { format: 'dd/MM/yy' },
+        y: {
+          formatter: percentFormatter,
+        },
+      },
+      colors: [],
+      grid: {
+        strokeDashArray: 3,
+        padding: { top: 12, left: 8, right: 8 },
+      },
+    };
+  }
+
+  private normalizeMacroId(serie: MacroForecast): string {
+    const candidates = [serie.serieId, serie.requestedSerie];
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim().toLowerCase();
+      }
+    }
+    return 'serie';
+  }
+
+  private resolveMacroLabel(id: string, serie: MacroForecast): string {
+    const labels: Record<string, string> = {
+      selic: 'SELIC',
+      ipca: 'IPCA',
+      pib: 'PIB',
+    };
+    if (labels[id]) {
+      return labels[id];
+    }
+    if (typeof serie.descricao === 'string' && serie.descricao.trim()) {
+      return serie.descricao.trim();
+    }
+    return (id || 'Indicador').toUpperCase();
+  }
+
+  private resolveMacroColor(id: string): string {
+    return this.macroColors[id] ?? '#2563eb';
+  }
+
+  private toMacroSeriesPoints(values: unknown, timestamps?: unknown): Array<{ x: number; y: number }>
+  {
+    if (!Array.isArray(values) || !values.length) {
+      return [];
+    }
+
+    const stamps = Array.isArray(timestamps) ? timestamps : [];
+    const points: Array<{ x: number; y: number }> = [];
+
+    values.forEach((raw, index) => {
+      const numeric = Number(raw);
+      if (!Number.isFinite(numeric)) {
+        return;
+      }
+
+      const stamp = stamps[index];
+      const date = this.parseDate(stamp);
+      if (!date) {
+        return;
+      }
+
+      points.push({ x: date.getTime(), y: Number(numeric.toFixed(2)) });
+    });
+
+    return points.sort((a, b) => a.x - b.x);
+  }
+
+  private linkForecastToHistory(
+    historico: Array<{ x: number; y: number }>,
+    forecast: Array<{ x: number; y: number }>
+  ): Array<{ x: number; y: number }>
+  {
+    if (!forecast.length) {
+      return [];
+    }
+
+    if (!historico.length) {
+      return forecast;
+    }
+
+    const last = historico[historico.length - 1];
+    const first = forecast[0];
+    if (last.x === first.x) {
+      return forecast;
+    }
+
+    return [last, ...forecast];
+  }
+
+  private parseDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    const parsed = new Date(value as string | number);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private toCanonicalIdentifier(term: string): string | null {

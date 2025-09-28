@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -87,7 +89,7 @@ public class DecisaoService {
                 ? "Score ≥ threshold (" + String.format("%.2f", score) + " ≥ " + String.format("%.2f", threshold) + ")"
                 : "Score < threshold (" + String.format("%.2f", score) + " < " + String.format("%.2f", threshold) + ")";
 
-        DecisaoCredito ent = new DecisaoCredito();
+        DecisaoCredito ent = consolidarDecisoes(empresaId, true);
         ent.setEmpresaId(empresaId);
         ent.setDtDecisao(LocalDateTime.now());
         ent.setScore(score);
@@ -95,7 +97,9 @@ public class DecisaoService {
         ent.setLimite(limite);
         ent.setMoeda(moedaPadrao);
         ent.setMotivo(motivo);
-        ent.setCriadoEm(LocalDateTime.now());
+        if (ent.getCriadoEm() == null) {
+            ent.setCriadoEm(LocalDateTime.now());
+        }
         ent.setDecisao(aprovado ? "APROVADO" : "REPROVADO");
 
         DecisaoCredito persisted = decisaoRepo.save(ent);
@@ -113,5 +117,35 @@ public class DecisaoService {
                 persisted.getMotivo(),
                 persisted.getDecisao()
         );
+    }
+
+    @Transactional
+    public DecisaoCredito obterDecisaoAtualPorId(String empresaId) {
+        return consolidarDecisoes(empresaId, false);
+    }
+
+    private DecisaoCredito consolidarDecisoes(String empresaId, boolean createIfEmpty) {
+        List<DecisaoCredito> registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(empresaId);
+
+        if (registros.isEmpty()) {
+            if (!createIfEmpty) {
+                return null;
+            }
+
+            DecisaoCredito novo = new DecisaoCredito();
+            novo.setEmpresaId(empresaId);
+            novo.setCriadoEm(LocalDateTime.now());
+            return novo;
+        }
+
+        DecisaoCredito principal = registros.get(0);
+        if (registros.size() > 1) {
+            List<DecisaoCredito> duplicatas = new ArrayList<>(registros.subList(1, registros.size()));
+            if (!duplicatas.isEmpty()) {
+                decisaoRepo.deleteAll(duplicatas);
+            }
+        }
+
+        return principal;
     }
 }

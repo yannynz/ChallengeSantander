@@ -41,8 +41,8 @@ class DecisaoControllerTest {
 
     @Test
     void shouldFilterByEmpresa() throws Exception {
-        when(decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(anyString()))
-                .thenReturn(List.of(build("CNPJ_00001", 0.92, LocalDateTime.now())));
+        when(decisaoService.obterDecisaoAtualPorId("CNPJ_00001"))
+                .thenReturn(build("CNPJ_00001", 0.92, LocalDateTime.now()));
         when(empresaResolver.resolve(anyString())).thenAnswer(invocation -> buildEmpresa(invocation.getArgument(0)));
 
         mockMvc.perform(get("/decisoes").param("empresaId", "CNPJ_00001"))
@@ -57,6 +57,7 @@ class DecisaoControllerTest {
         DecisaoCredito older = build("CNPJ_00001", 0.50, base.minusDays(2));
         DecisaoCredito newer = build("CNPJ_00002", 0.90, base);
         when(decisaoRepo.findAll()).thenReturn(List.of(older, newer));
+        when(decisaoService.obterDecisaoAtualPorId("CNPJ_00002")).thenReturn(newer);
 
         mockMvc.perform(get("/decisoes").param("limit", "1"))
                 .andExpect(status().isOk())
@@ -69,8 +70,8 @@ class DecisaoControllerTest {
         LocalDateTime now = LocalDateTime.now();
         DecisaoCredito generated = build("CNPJ_00003", 0.80, now);
 
-        when(decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc("CNPJ_00003"))
-                .thenReturn(List.of(), List.of(generated));
+        when(decisaoService.obterDecisaoAtualPorId("CNPJ_00003"))
+                .thenReturn(null, generated);
         when(decisaoService.decidir("CNPJ_00003")).thenReturn(null);
         when(empresaResolver.resolve("CNPJ_00003")).thenReturn(buildEmpresa("CNPJ_00003"));
 
@@ -88,8 +89,9 @@ class DecisaoControllerTest {
         DecisaoCredito generated = build("CNPJ_00010", 0.80, now);
 
         when(empresaResolver.resolve("00000000000010")).thenReturn(buildEmpresa("CNPJ_00010"));
-        when(decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc("CNPJ_00010"))
-                .thenReturn(List.of(), List.of(generated));
+        when(decisaoService.obterDecisaoAtualPorId("CNPJ_00010"))
+                .thenReturn(null, generated);
+        when(decisaoService.decidir("CNPJ_00010")).thenReturn(null);
 
         mockMvc.perform(get("/decisoes").param("empresaId", "00000000000010"))
                 .andExpect(status().isOk())

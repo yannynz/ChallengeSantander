@@ -61,6 +61,28 @@
   color: inherit;
 }
 
+.empresa-page__subtitle {
+  margin: 12px 0 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.empresa-page__solo {
+  padding: 24px 16px 32px;
+}
+
+.empresa-page__solo-content {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.empresa-page__solo-empty {
+  text-align: center;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
 :host ::ng-deep .mat-mdc-tab-group .mat-mdc-tab-header {
   background-color: #ffffff;
 }
@@ -87,6 +109,11 @@
   color: #ec0000;
   font-weight: 600;
   margin-top: 20px;
+}
+
+:host ::ng-deep .empresa-page__solo mat-card-title {
+  text-align: center;
+  margin-left: 0;
 }
 
 :host ::ng-deep .tab-subtitle {
