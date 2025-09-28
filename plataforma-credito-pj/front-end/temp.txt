@@ -20,7 +20,8 @@
 }
 
 .dashboard__logo {
-  width: 100px;
+  height: 52px;
+  width: auto;
 }
 
 .dashboard__header-search {
@@ -51,7 +52,8 @@
   border-radius: 32px;
   box-shadow: 0 24px 48px rgba(16, 24, 40, 0.12);
   padding: 3rem 3.5rem;
-  width: 700px;
+  max-width: 520px;
+  width: 100%;
   text-align: center;
 }
 
@@ -208,8 +210,7 @@ mat-card h3 {
   color: rgba(255, 255, 255, 0.85);
 }
 
-.search-input--header:focus {
-  background-color: transparent;
+\.search-input--header:focus {\n  background-color: transparent;\n
   box-shadow: none;
 }
 
@@ -286,4 +287,3 @@ mat-card h3 {
     height: 40px;
   }
 }
-

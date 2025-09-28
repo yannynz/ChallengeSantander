@@ -1,67 +1,118 @@
-﻿<div class="grid">
-  <mat-card class="col-12">
-    <div class="search">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Buscar por ID ou CNPJ</mat-label>
-        <input matInput [(ngModel)]="term" (keyup.enter)="onSearch()">
-        <button mat-icon-button matSuffix aria-label="buscar" (click)="onSearch()">
-          <mat-icon>search</mat-icon>
-        </button>
-      </mat-form-field>
+<div class="dashboard">
+  <header class="dashboard__header">
+    <img src="/img/logo-creditthink.png" alt="CreditThink" class="dashboard__logo" />
+    <div class="dashboard__header-search" *ngIf="viewState() !== 'initial'">
+      <form (ngSubmit)="onSearch()" #headerSearch="ngForm" class="search-form search-form--header">
+        <div class="search-field search-field--header">
+          <input
+            type="text"
+            name="term"
+            class="search-input search-input--header"
+            placeholder="Buscar por ID ou CNPJ"
+            [(ngModel)]="term"
+            required
+            [disabled]="viewState() === 'loading'"
+          />
+          <button
+            type="submit"
+            class="search-icon-button"
+            aria-label="Buscar"
+            [disabled]="headerSearch.invalid || viewState() === 'loading'"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M10.5 4a6.5 6.5 0 014.914 10.8l4.393 4.393a1 1 0 01-1.414 1.414l-4.393-4.393A6.5 6.5 0 1110.5 4zm0 2a4.5 4.5 0 100 9 4.5 4.5 0 000-9z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+        </div>
+      </form>
     </div>
-  </mat-card>
+  </header>
 
-  <mat-card class="col">
-    <h3>Score</h3>
-    <div *ngIf="scoreLoading()" class="px-2 py-2 text-sm">Carregando score...</div>
-    <div *ngIf="!scoreLoading() && scoreError()" class="px-2 py-2 text-sm" style="color:#b91c1c;">{{ scoreError() }}</div>
-    <ng-container *ngIf="!scoreLoading() && !scoreError()">
-      <apx-chart
-        [series]="scoreOpts().series"
-        [chart]="scoreOpts().chart"
-        [plotOptions]="scoreOpts().plotOptions"
-        [labels]="scoreOpts().labels">
-      </apx-chart>
-      <div class="px-2 pb-2 text-sm">{{ scoreSubtitle() }}</div>
-    </ng-container>
-  </mat-card>
+  <main class="dashboard__body">
+    <section *ngIf="viewState() === 'initial'" class="landing">
+      <div class="landing__card">
+        <h2>Comece encontrando uma empresa</h2>
+        <p>Digite o ID ou CNPJ para carregar os indicadores financeiros.</p>
+        <form (ngSubmit)="onSearch()" #landingSearch="ngForm" class="search-form search-form--landing">
+          <input
+            type="text"
+            name="landingTerm"
+            class="search-input"
+            placeholder="Buscar por ID ou CNPJ"
+            [(ngModel)]="term"
+            required
+            [disabled]="viewState() === 'loading'"
+          />
+          <button type="submit" class="search-submit" [disabled]="landingSearch.invalid || viewState() === 'loading'">
+            Buscar
+          </button>
+        </form>
+      </div>
+    </section>
 
-  <mat-card class="col">
-    <h3>Rede Financeira</h3>
-    <div
-      #graph
-      class="graph"
-      [style.display]="hasRedeData() && !redeError() ? 'block' : 'none'">
-    </div>
-    <div *ngIf="redeLoading()" class="px-2 py-2 text-sm">Carregando rede...</div>
-    <div *ngIf="!redeLoading() && redeError()" class="px-2 py-2 text-sm" style="color:#b91c1c;">{{ redeError() }}</div>
-    <div *ngIf="!redeLoading() && !redeError() && !hasRedeData()" class="px-2 py-2 text-sm">Sem dados de rede.</div>
-  </mat-card>
+    <section *ngIf="viewState() === 'loading'" class="feedback feedback--loading">
+      <div class="feedback__card">Carregando dados da empresa...</div>
+    </section>
 
-  <mat-card class="col">
-    <h3>Macro (Historico vs Forecast)</h3>
-    <div *ngIf="macroLoading()" class="px-2 py-2 text-sm">Carregando dados macro...</div>
-    <div *ngIf="!macroLoading() && macroError()" class="px-2 py-2 text-sm" style="color:#b91c1c;">{{ macroError() }}</div>
-    <apx-chart
-      *ngIf="!macroLoading() && !macroError()"
-      [series]="macro().series"
-      [chart]="macro().chart"
-      [xaxis]="macro().xaxis"
-      [stroke]="macro().stroke"
-      [dataLabels]="macro().dataLabels">
-    </apx-chart>
-  </mat-card>
+    <section *ngIf="viewState() === 'error'" class="feedback feedback--error">
+      <div class="feedback__card">{{ viewMessage() }}</div>
+    </section>
 
-  <mat-card class="col">
-    <h3>Resumo de Decisoes</h3>
-    <div *ngIf="alertasLoading()" class="px-2 py-2 text-sm">Carregando decisoes...</div>
-    <div *ngIf="!alertasLoading() && alertasError()" class="px-2 py-2 text-sm" style="color:#b91c1c;">{{ alertasError() }}</div>
-    <apx-chart
-      *ngIf="!alertasLoading() && !alertasError()"
-      [series]="alertasSeries()"
-      [chart]="alertasChart"
-      [xaxis]="alertasXAxis()"
-      [plotOptions]="alertasPlot">
-    </apx-chart>
-  </mat-card>
+    <section *ngIf="viewState() === 'ready'" class="cards">
+      <div class="grid">
+        <mat-card class="col">
+          <h3>Score</h3>
+          <div *ngIf="scoreLoading()" class="px-2 py-2 text-sm">Carregando score...</div>
+          <div *ngIf="!scoreLoading() && scoreError()" class="px-2 py-2 text-sm cards__error">{{ scoreError() }}</div>
+          <ng-container *ngIf="!scoreLoading() && !scoreError()">
+            <apx-chart
+              [series]="scoreOpts().series"
+              [chart]="scoreOpts().chart"
+              [plotOptions]="scoreOpts().plotOptions"
+              [labels]="scoreOpts().labels"
+            ></apx-chart>
+            <div class="px-2 pb-2 text-sm">{{ scoreSubtitle() }}</div>
+          </ng-container>
+        </mat-card>
+
+        <mat-card class="col">
+          <h3>Rede Financeira</h3>
+          <div #graph class="graph" [style.display]="hasRedeData() && !redeError() ? 'block' : 'none'"></div>
+          <div *ngIf="redeLoading()" class="px-2 py-2 text-sm">Carregando rede...</div>
+          <div *ngIf="!redeLoading() && redeError()" class="px-2 py-2 text-sm cards__error">{{ redeError() }}</div>
+          <div *ngIf="!redeLoading() && !redeError() && !hasRedeData()" class="px-2 py-2 text-sm">Sem dados de rede.</div>
+        </mat-card>
+
+        <mat-card class="col">
+          <h3>Macro (Historico vs Forecast)</h3>
+          <div *ngIf="macroLoading()" class="px-2 py-2 text-sm">Carregando dados macro...</div>
+          <div *ngIf="!macroLoading() && macroError()" class="px-2 py-2 text-sm cards__error">{{ macroError() }}</div>
+          <apx-chart
+            *ngIf="!macroLoading() && !macroError()"
+            [series]="macro().series"
+            [chart]="macro().chart"
+            [xaxis]="macro().xaxis"
+            [stroke]="macro().stroke"
+            [dataLabels]="macro().dataLabels"
+          ></apx-chart>
+        </mat-card>
+
+        <mat-card class="col">
+          <h3>Resumo de Decisoes</h3>
+          <div *ngIf="alertasLoading()" class="px-2 py-2 text-sm">Carregando Decisoes...</div>
+          <div *ngIf="!alertasLoading() && alertasError()" class="px-2 py-2 text-sm cards__error">{{ alertasError() }}</div>
+          <apx-chart
+            *ngIf="!alertasLoading() && !alertasError()"
+            [series]="alertasSeries()"
+            [chart]="alertasChart"
+            [xaxis]="alertasXAxis()"
+            [plotOptions]="alertasPlot"
+          ></apx-chart>
+        </mat-card>
+      </div>
+    </section>
+  </main>
 </div>

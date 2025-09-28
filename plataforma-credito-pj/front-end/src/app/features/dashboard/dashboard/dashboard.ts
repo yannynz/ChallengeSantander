@@ -1,23 +1,7 @@
-import {
-  AfterViewInit,
-  Component,
-  DestroyRef,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnDestroy, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
-
+import { MatCardModule } from '@angular/material/card';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import {
   ApexAxisChartSeries,
@@ -28,14 +12,12 @@ import {
   ApexPlotOptions,
   ApexNonAxisChartSeries,
 } from 'ng-apexcharts';
-
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
 import { DataSet, Network, Node, Edge } from 'vis-network/standalone';
 
 import {
   ApiService,
-  EmpresaSummary,
   EmpresaScoreResponse,
   EmpresaRedeResponse,
   Decisao,
@@ -57,32 +39,20 @@ type MacroChart = {
   dataLabels: ApexDataLabels;
 };
 
+type ViewState = 'initial' | 'loading' | 'ready' | 'error';
+
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatCardModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    NgApexchartsModule,
-  ],
+  imports: [CommonModule, FormsModule, MatCardModule, NgApexchartsModule],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
 })
-export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
-  constructor(
-    private router: Router,
-    private readonly api: ApiService,
-    private readonly destroyRef: DestroyRef
-  ) {}
-
+export class DashboardComponent implements OnDestroy {
   term = '';
 
-  empresas = signal<EmpresaSummary[]>([]);
-  private currentEmpresaId: string | null = null;
+  viewState = signal<ViewState>('initial');
+  viewMessage = signal<string | null>(null);
 
   scoreLoading = signal(false);
   scoreError = signal<string | null>(null);
@@ -125,26 +95,26 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   redeLoading = signal(false);
   redeError = signal<string | null>(null);
   hasRedeData = signal(false);
+
+  private currentEmpresaId: string | null = null;
   private network?: Network;
-  private graphReady = false;
   private pendingRedeId: string | null = null;
+  private graphHost?: ElementRef<HTMLDivElement>;
 
-  @ViewChild('graph', { static: true }) graphRef!: ElementRef<HTMLDivElement>;
+  constructor(private readonly api: ApiService, private readonly destroyRef: DestroyRef) {}
 
-  ngOnInit(): void {
-    this.loadEmpresas();
-    this.loadMacro();
-    this.loadAlertas();
+  @ViewChild('graph')
+  set graphRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.graphHost = ref;
+    if (ref && this.pendingRedeId) {
+      const pending = this.pendingRedeId;
+      this.pendingRedeId = null;
+      this.loadRede(pending);
+    }
   }
 
-  ngAfterViewInit(): void {
-    this.graphReady = true;
-    if (this.pendingRedeId) {
-      this.loadRede(this.pendingRedeId);
-      this.pendingRedeId = null;
-    } else if (this.currentEmpresaId) {
-      this.loadRede(this.currentEmpresaId);
-    }
+  get graphRef(): ElementRef<HTMLDivElement> | undefined {
+    return this.graphHost;
   }
 
   ngOnDestroy(): void {
@@ -162,57 +132,70 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    if (canonical.startsWith('CNPJ_') || /^\d{14}$/.test(canonical)) {
-      this.router.navigate(['/empresa/cnpj', canonical]);
-    } else {
-      this.router.navigate(['/empresa', canonical]);
-    }
-  }
+    this.viewState.set('loading');
+    this.viewMessage.set(null);
+    this.resetDataStates();
 
-  private toCanonicalIdentifier(term: string): string | null {
-    const trimmed = term.trim();
-    if (!trimmed) {
-      return null;
-    }
-
-    const digits = trimmed.replace(/\D/g, '');
-    if (digits) {
-      if (digits.length >= 14) {
-        const normalized = digits.slice(-14);
-        return normalized.padStart(14, '0');
-      }
-      const suffix = digits.slice(-5).padStart(5, '0');
-      return `CNPJ_${suffix}`;
-    }
-
-    return trimmed.toUpperCase();
-  }
-
-  private loadEmpresas(): void {
     this.api
-      .getEmpresas()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (lista) => {
-          this.empresas.set(lista);
-          const primeira = lista[0];
-          const id = (primeira?.id ?? primeira?.cnpj ?? '').toString().trim();
-          if (!id) {
-            this.scoreError.set('Nenhuma empresa encontrada.');
-            this.redeError.set('Nenhuma empresa encontrada.');
-            return;
-          }
+      .resolveEmpresaId(canonical)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError((err) => {
+          console.error('Erro ao resolver empresa', err);
+          this.handleSearchError('Nao encontramos dados para o identificador informado.');
+          return of('');
+        })
+      )
+      .subscribe((resolved) => {
+        const id = (resolved || '').trim();
+        if (!id) {
+          this.handleSearchError('Nao encontramos dados para o identificador informado.');
+          return;
+        }
 
-          this.currentEmpresaId = id;
-          this.loadScore(id);
-          this.scheduleRede(id);
-        },
-        error: (err) => {
-          console.error('Erro ao buscar empresas', err);
-          this.scoreError.set('Nao foi possivel carregar as empresas.');
-          this.redeError.set('Nao foi possivel carregar as empresas.');
-        },
+        this.currentEmpresaId = id;
+        this.viewState.set('ready');
+        this.loadScore(id);
+        this.scheduleRede(id);
+        this.loadMacro();
+        this.loadAlertas();
       });
+  }
+
+  private handleSearchError(message: string): void {
+    this.currentEmpresaId = null;
+    this.viewState.set('error');
+    this.viewMessage.set(message);
+    this.destroyNetwork();
+  }
+
+  private resetDataStates(): void {
+    this.currentEmpresaId = null;
+    this.scoreLoading.set(false);
+    this.scoreError.set(null);
+    this.scoreInfo.set(null);
+    this.scoreOpts.set(this.createRadialOptions(0, 'Score'));
+
+    this.redeLoading.set(false);
+    this.redeError.set(null);
+    this.hasRedeData.set(false);
+    this.pendingRedeId = null;
+    this.destroyNetwork();
+
+    this.macroLoading.set(false);
+    this.macroError.set(null);
+    this.macro.set({
+      series: [],
+      chart: { type: 'line', height: 260 },
+      xaxis: { categories: [] },
+      stroke: { curve: 'smooth', width: 3 },
+      dataLabels: { enabled: false },
+    });
+
+    this.alertasLoading.set(false);
+    this.alertasError.set(null);
+    this.alertasSeries.set([]);
+    this.alertasXAxis.set({ categories: [] });
   }
 
   private loadScore(empresaId: string): void {
@@ -245,7 +228,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private scheduleRede(empresaId: string): void {
-    if (this.graphReady) {
+    if (this.graphRef?.nativeElement) {
       this.loadRede(empresaId);
     } else {
       this.pendingRedeId = empresaId;
@@ -253,7 +236,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadRede(empresaId: string): void {
-    if (!this.graphRef?.nativeElement) {
+    const host = this.graphRef?.nativeElement;
+    if (!host) {
+      this.pendingRedeId = empresaId;
       return;
     }
 
@@ -264,7 +249,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe({
         next: (response) => {
           this.redeError.set(null);
-          this.renderRede(response);
+          this.renderRede(response, host);
         },
         error: (err) => {
           console.error('Erro ao carregar rede', err);
@@ -275,7 +260,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  private renderRede(response: EmpresaRedeResponse): void {
+  private renderRede(response: EmpresaRedeResponse, host: HTMLDivElement): void {
     const nodesRaw = Array.isArray(response?.nodes) ? response.nodes : [];
     const edgesRaw = Array.isArray(response?.edges) ? response.edges : [];
 
@@ -333,7 +318,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.network.setData(data);
       this.network.setOptions(options);
     } else {
-      this.network = new Network(this.graphRef.nativeElement, data, options);
+      this.network = new Network(host, data, options);
     }
   }
 
@@ -435,8 +420,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           this.alertasXAxis.set({ categories });
         },
         error: (err) => {
-          console.error('Erro ao carregar alertas', err);
-          this.alertasError.set('Nao foi possivel carregar o resumo das decisoes.');
+          console.error('Erro ao carregar Decisoes', err);
+          this.alertasError.set('Nao foi possivel carregar o resumo das Decisoes.');
           this.alertasSeries.set([{ name: 'Decisoes', data: [] }]);
           this.alertasXAxis.set({ categories: [] });
         },
@@ -466,6 +451,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       labels: [label],
     };
+  }
+
+  private toCanonicalIdentifier(term: string): string | null {
+    const trimmed = term.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits) {
+      if (digits.length >= 14) {
+        const normalized = digits.slice(-14);
+        return normalized.padStart(14, '0');
+      }
+      const suffix = digits.slice(-5).padStart(5, '0');
+      return `CNPJ_${suffix}`;
+    }
+
+    return trimmed.toUpperCase();
   }
 
   private toPercent(value: number | null | undefined): number {
