@@ -287,3 +287,35 @@ mat-card h3 {
   }
 }
 
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.card-link {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0);
+  border-radius: 999px;
+  color: #ec0000;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.card-link:hover:not([disabled]),
+.card-link:focus-visible:not([disabled]) {
+  color: #b30909;
+  border-color: #ffdada;
+  background-color: #fff2f2;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.card-link[disabled] {
+  color: rgba(16, 24, 40, 0.4);
+  cursor: not-allowed;
+}

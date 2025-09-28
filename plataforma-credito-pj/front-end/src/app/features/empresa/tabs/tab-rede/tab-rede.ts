@@ -33,9 +33,9 @@ import { ApiService, EmpresaRedeResponse } from '../../../../shared/api';
         [style.display]="hasData() && !error() ? 'block' : 'none'">
       </div>
 
-      <div *ngIf="loading()" class="px-3 py-4 text-sm">Carregando rede...</div>
-      <div *ngIf="!loading() && error()" class="px-3 py-4 text-sm" style="color:#b91c1c;">{{ error() }}</div>
-      <div *ngIf="!loading() && !error() && !hasData()" class="px-3 py-4 text-sm">
+      <div *ngIf="loading()" class="px-3 py-4 text-sm tab-subtitle">Carregando rede...</div>
+      <div *ngIf="!loading() && error()" class="px-3 py-4 text-sm tab-subtitle" style="color:#b91c1c;">{{ error() }}</div>
+      <div *ngIf="!loading() && !error() && !hasData()" class="px-3 py-4 text-sm tab-subtitle">
         Sem dados de rede para esta empresa.
       </div>
     </mat-card>

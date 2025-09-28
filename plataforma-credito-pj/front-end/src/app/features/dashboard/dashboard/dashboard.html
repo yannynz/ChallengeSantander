@@ -64,7 +64,12 @@
     <section *ngIf="viewState() === 'ready'" class="cards">
       <div class="grid">
         <mat-card class="col">
-          <h3>Score</h3>
+          <div class="card-header">
+            <h3>Score</h3>
+            <button type="button" class="card-link" (click)="goToDetalhe('score')" [disabled]="!empresaSelecionada()">
+              Ver mais
+            </button>
+          </div>
           <div *ngIf="scoreLoading()" class="px-2 py-2 text-sm">Carregando score...</div>
           <div *ngIf="!scoreLoading() && scoreError()" class="px-2 py-2 text-sm cards__error">{{ scoreError() }}</div>
           <ng-container *ngIf="!scoreLoading() && !scoreError()">
@@ -79,7 +84,12 @@
         </mat-card>
 
         <mat-card class="col">
-          <h3>Rede Financeira</h3>
+          <div class="card-header">
+            <h3>Rede Financeira</h3>
+            <button type="button" class="card-link" (click)="goToDetalhe('rede')" [disabled]="!empresaSelecionada()">
+              Ver mais
+            </button>
+          </div>
           <div #graph class="graph" [style.display]="hasRedeData() && !redeError() ? 'block' : 'none'"></div>
           <div *ngIf="redeLoading()" class="px-2 py-2 text-sm">Carregando rede...</div>
           <div *ngIf="!redeLoading() && redeError()" class="px-2 py-2 text-sm cards__error">{{ redeError() }}</div>
@@ -87,7 +97,12 @@
         </mat-card>
 
         <mat-card class="col">
-          <h3>Macro (Historico vs Forecast)</h3>
+          <div class="card-header">
+            <h3>Macro (Historico vs Forecast)</h3>
+            <button type="button" class="card-link" (click)="goToDetalhe('macro')">
+              Ver mais
+            </button>
+          </div>
           <div *ngIf="macroLoading()" class="px-2 py-2 text-sm">Carregando dados macro...</div>
           <div *ngIf="!macroLoading() && macroError()" class="px-2 py-2 text-sm cards__error">{{ macroError() }}</div>
           <apx-chart
@@ -101,7 +116,12 @@
         </mat-card>
 
         <mat-card class="col">
-          <h3>Resumo de Decisoes</h3>
+          <div class="card-header">
+            <h3>Resumo de Decisoes</h3>
+            <button type="button" class="card-link" (click)="goToDetalhe('decisoes')" [disabled]="!empresaSelecionada()">
+              Ver mais
+            </button>
+          </div>
           <div *ngIf="alertasLoading()" class="px-2 py-2 text-sm">Carregando Decisoes...</div>
           <div *ngIf="!alertasLoading() && alertasError()" class="px-2 py-2 text-sm cards__error">{{ alertasError() }}</div>
           <apx-chart

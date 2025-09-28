@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, OnDestroy, ViewChild, computed, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -15,6 +15,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of } from 'rxjs';
 import { DataSet, Network, Node, Edge } from 'vis-network/standalone';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import {
   ApiService,
@@ -48,7 +49,7 @@ type ViewState = 'initial' | 'loading' | 'ready' | 'error';
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
 })
-export class DashboardComponent implements OnDestroy {
+export class DashboardComponent implements OnInit, OnDestroy {
   term = '';
 
   viewState = signal<ViewState>('initial');
@@ -101,7 +102,35 @@ export class DashboardComponent implements OnDestroy {
   private pendingRedeId: string | null = null;
   private graphHost?: ElementRef<HTMLDivElement>;
 
-  constructor(private readonly api: ApiService, private readonly destroyRef: DestroyRef) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute
+  ) {}
+
+  ngOnInit(): void {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const termParam = (params.get('term') ?? '').trim();
+
+        if (!termParam) {
+          this.term = '';
+          if (this.viewState() !== 'initial') {
+            this.resetDataStates();
+            this.viewState.set('initial');
+          }
+          return;
+        }
+
+        if (termParam === this.term) {
+          return;
+        }
+
+        this.searchTerm(termParam, { source: 'query' });
+      });
+  }
 
   @ViewChild('graph')
   set graphRef(ref: ElementRef<HTMLDivElement> | undefined) {
@@ -121,15 +150,33 @@ export class DashboardComponent implements OnDestroy {
     this.destroyNetwork();
   }
 
+  empresaSelecionada(): string | null {
+    return this.currentEmpresaId;
+  }
+
   onSearch(): void {
     const raw = (this.term || '').trim();
     if (!raw) {
       return;
     }
 
+    this.searchTerm(raw, { source: 'user' });
+  }
+
+  private searchTerm(raw: string, opts: { source: 'user' | 'query' }): void {
     const canonical = this.toCanonicalIdentifier(raw);
     if (!canonical) {
       return;
+    }
+
+    this.term = canonical;
+
+    if (opts.source === 'user') {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { term: canonical },
+        queryParamsHandling: 'merge',
+      });
     }
 
     this.viewState.set('loading');
@@ -167,6 +214,39 @@ export class DashboardComponent implements OnDestroy {
     this.viewState.set('error');
     this.viewMessage.set(message);
     this.destroyNetwork();
+  }
+
+  goToDetalhe(section: 'score' | 'rede' | 'macro' | 'decisoes'): void {
+    const term = (this.currentEmpresaId ?? this.term).trim();
+
+    if (section === 'macro') {
+      if (term) {
+        this.router.navigate(['/kpis'], { queryParams: { term } });
+      } else {
+        this.router.navigate(['/kpis']);
+      }
+      return;
+    }
+
+    if (!this.currentEmpresaId) {
+      return;
+    }
+
+    const baseParams: Record<string, string> = term ? { term } : {};
+
+    if (section === 'rede') {
+      this.router.navigate(['/empresa', this.currentEmpresaId], { queryParams: { ...baseParams, tab: 'rede' } });
+      return;
+    }
+
+    if (section === 'decisoes') {
+      this.router.navigate(['/empresa', this.currentEmpresaId], { queryParams: { ...baseParams, tab: 'decisoes' } });
+      return;
+    }
+
+    this.router.navigate(['/empresa', this.currentEmpresaId], {
+      queryParams: Object.keys(baseParams).length ? baseParams : undefined,
+    });
   }
 
   private resetDataStates(): void {
