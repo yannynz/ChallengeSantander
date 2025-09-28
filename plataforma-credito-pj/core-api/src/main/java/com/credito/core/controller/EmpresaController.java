@@ -9,6 +9,7 @@ import com.credito.core.repository.EmpresaFinanceiroRepository;
 import com.credito.core.repository.EmpresaRepository;
 import com.credito.core.repository.ScoreRiscoRepository;
 import com.credito.core.repository.TransacaoRepository;
+import com.credito.core.service.EmpresaResolverService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -17,7 +18,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,18 +41,21 @@ public class EmpresaController {
     private final TransacaoRepository transacaoRepo;
     private final MlServiceClient mlClient;
     private final ScoreRiscoRepository scoreRiscoRepo;
+    private final EmpresaResolverService empresaResolver;
 
     public EmpresaController(
             EmpresaRepository empresaRepo,
             EmpresaFinanceiroRepository financeiroRepo,
             TransacaoRepository transacaoRepo,
             MlServiceClient mlClient,
-            ScoreRiscoRepository scoreRiscoRepo) {
+            ScoreRiscoRepository scoreRiscoRepo,
+            EmpresaResolverService empresaResolver) {
         this.empresaRepo = empresaRepo;
         this.financeiroRepo = financeiroRepo;
         this.transacaoRepo = transacaoRepo;
         this.mlClient = mlClient;
         this.scoreRiscoRepo = scoreRiscoRepo;
+        this.empresaResolver = empresaResolver;
     }
 
     @GetMapping
@@ -62,12 +65,12 @@ public class EmpresaController {
 
     @GetMapping("/{identifier}")
     public Empresa getEmpresa(@PathVariable String identifier) {
-        return resolveEmpresa(identifier);
+        return empresaResolver.resolve(identifier);
     }
 
     @GetMapping("/{identifier}/score")
     public Map<String, Object> getScore(@PathVariable String identifier) {
-        Empresa empresa = resolveEmpresa(identifier);
+        Empresa empresa = empresaResolver.resolve(identifier);
         List<EmpresaFinanceiro> historicoFinanceiro = financeiroRepo
                 .findByEmpresaIdOrderByDtRefAsc(empresa.getId());
 
@@ -134,7 +137,7 @@ public class EmpresaController {
 
     @GetMapping("/{identifier}/rede")
     public Map<String, Object> getRede(@PathVariable String identifier) {
-        Empresa empresa = resolveEmpresa(identifier);
+        Empresa empresa = empresaResolver.resolve(identifier);
         List<Transacao> transacoes = transacaoRepo
                 .findTop500ByIdPgtoOrIdRcbeOrderByDtRefDesc(empresa.getId(), empresa.getId());
 
@@ -193,40 +196,6 @@ public class EmpresaController {
             response.put("centralidades", centralidades);
         }
         return response;
-    }
-
-    private Empresa resolveEmpresa(String identifier) {
-        String trimmed = Optional.ofNullable(identifier).map(String::trim).orElse("");
-        if (trimmed.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Identificador da empresa vazio.");
-        }
-
-        String upper = trimmed.toUpperCase(Locale.ROOT);
-
-        Optional<Empresa> resolved = empresaRepo.findById(upper)
-                .or(() -> empresaRepo.findByCnpj(trimmed))
-                .or(() -> empresaRepo.findByCnpj(upper));
-        if (resolved.isPresent()) {
-            return resolved.get();
-        }
-
-        String digits = digitsOnly(trimmed);
-        if (!digits.isEmpty()) {
-            String cnpj14 = leftPadDigits(digits, 14);
-            resolved = empresaRepo.findByCnpj(cnpj14);
-            if (resolved.isPresent()) {
-                return resolved.get();
-            }
-
-            String lastFive = digits.length() > 5 ? digits.substring(digits.length() - 5) : digits;
-            String candidateId = "CNPJ_" + leftPadDigits(lastFive, 5);
-            resolved = empresaRepo.findById(candidateId.toUpperCase(Locale.ROOT));
-            if (resolved.isPresent()) {
-                return resolved.get();
-            }
-        }
-
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Empresa não encontrada: " + identifier);
     }
 
     private static Map<String, Object> buildFeaturesParaPeriodo(Empresa empresa, EmpresaFinanceiro registro) {
@@ -400,23 +369,4 @@ public class EmpresaController {
         return texto.isEmpty() ? defaultValue : texto;
     }
 
-    private static String digitsOnly(String value) {
-        StringBuilder builder = new StringBuilder();
-        for (char ch : value.toCharArray()) {
-            if (Character.isDigit(ch)) {
-                builder.append(ch);
-            }
-        }
-        return builder.toString();
-    }
-
-    private static String leftPadDigits(String digits, int alvo) {
-        if (digits.length() >= alvo) {
-            return digits.substring(digits.length() - alvo);
-        }
-        StringBuilder builder = new StringBuilder(alvo);
-        builder.append("0".repeat(alvo - digits.length()));
-        builder.append(digits);
-        return builder.toString();
-    }
 }

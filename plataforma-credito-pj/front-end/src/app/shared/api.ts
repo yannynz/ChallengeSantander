@@ -78,7 +78,7 @@ export interface Decisao {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly base = 'http://localhost:8080';
+  private readonly base = this.resolveApiBaseUrl();
 
   getEmpresas(): Observable<EmpresaSummary[]> {
     return this.http.get<EmpresaSummary[]>(`${this.base}/empresas`);
@@ -269,5 +269,26 @@ export class ApiService {
       params = params.set('horizonte', `${horizonte}`);
     }
     return params;
+  }
+
+  private resolveApiBaseUrl(): string {
+    const normalize = (url: string): string => url.replace(/\/+$/, '');
+
+    if (typeof window === 'undefined') {
+      return 'http://core-api:8080';
+    }
+
+    const win = window as Window & { __API_BASE_URL__?: string };
+    const fromGlobal = typeof win.__API_BASE_URL__ === 'string' ? win.__API_BASE_URL__.trim() : '';
+    if (fromGlobal) {
+      return normalize(fromGlobal);
+    }
+
+    const { hostname, origin } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]') {
+      return 'http://localhost:8080';
+    }
+
+    return normalize(`${origin}/api`);
   }
 }

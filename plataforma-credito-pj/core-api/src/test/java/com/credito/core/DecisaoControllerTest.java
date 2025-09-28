@@ -2,8 +2,10 @@ package com.credito.core;
 
 import com.credito.core.controller.DecisaoController;
 import com.credito.core.model.DecisaoCredito;
+import com.credito.core.model.Empresa;
 import com.credito.core.repository.DecisaoCreditoRepository;
 import com.credito.core.service.DecisaoService;
+import com.credito.core.service.EmpresaResolverService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -34,10 +36,14 @@ class DecisaoControllerTest {
     @MockBean
     private DecisaoCreditoRepository decisaoRepo;
 
+    @MockBean
+    private EmpresaResolverService empresaResolver;
+
     @Test
     void shouldFilterByEmpresa() throws Exception {
         when(decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(anyString()))
                 .thenReturn(List.of(build("CNPJ_00001", 0.92, LocalDateTime.now())));
+        when(empresaResolver.resolve(anyString())).thenAnswer(invocation -> buildEmpresa(invocation.getArgument(0)));
 
         mockMvc.perform(get("/decisoes").param("empresaId", "CNPJ_00001"))
                 .andExpect(status().isOk())
@@ -66,6 +72,7 @@ class DecisaoControllerTest {
         when(decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc("CNPJ_00003"))
                 .thenReturn(List.of(), List.of(generated));
         when(decisaoService.decidir("CNPJ_00003")).thenReturn(null);
+        when(empresaResolver.resolve("CNPJ_00003")).thenReturn(buildEmpresa("CNPJ_00003"));
 
         mockMvc.perform(get("/decisoes").param("empresaId", "CNPJ_00003"))
                 .andExpect(status().isOk())
@@ -73,6 +80,23 @@ class DecisaoControllerTest {
                 .andExpect(jsonPath("$[0].empresaId").value("CNPJ_00003"));
 
         verify(decisaoService, times(1)).decidir("CNPJ_00003");
+    }
+
+    @Test
+    void shouldResolveCanonicalIdWhenQueryingWithCnpj() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        DecisaoCredito generated = build("CNPJ_00010", 0.80, now);
+
+        when(empresaResolver.resolve("00000000000010")).thenReturn(buildEmpresa("CNPJ_00010"));
+        when(decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc("CNPJ_00010"))
+                .thenReturn(List.of(), List.of(generated));
+
+        mockMvc.perform(get("/decisoes").param("empresaId", "00000000000010"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].empresaId").value("CNPJ_00010"));
+
+        verify(decisaoService).decidir("CNPJ_00010");
     }
 
     private DecisaoCredito build(String empresaId, double score, LocalDateTime dt) {
@@ -88,5 +112,11 @@ class DecisaoControllerTest {
         ent.setDecisao(ent.getAprovacao() ? "APROVADO" : "REPROVADO");
         ent.setMotivo("Teste");
         return ent;
+    }
+
+    private Empresa buildEmpresa(String empresaId) {
+        Empresa empresa = new Empresa();
+        empresa.setId(empresaId.toUpperCase());
+        return empresa;
     }
 }

@@ -7,7 +7,6 @@ import com.credito.core.model.Empresa;
 import com.credito.core.model.EmpresaFinanceiro;
 import com.credito.core.repository.DecisaoCreditoRepository;
 import com.credito.core.repository.EmpresaFinanceiroRepository;
-import com.credito.core.repository.EmpresaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,7 +23,7 @@ public class DecisaoService {
 
     private static final Logger log = LoggerFactory.getLogger(DecisaoService.class);
 
-    private final EmpresaRepository empresaRepo;
+    private final EmpresaResolverService empresaResolver;
     private final EmpresaFinanceiroRepository finRepo;
     private final DecisaoCreditoRepository decisaoRepo;
     private final MlServiceClient mlClient;
@@ -41,20 +40,20 @@ public class DecisaoService {
     @Value("${credito.moedaPadrao:BRL}")
     private String moedaPadrao;
 
-    public DecisaoService(EmpresaRepository empresaRepo,
+    public DecisaoService(EmpresaResolverService empresaResolver,
                           EmpresaFinanceiroRepository finRepo,
                           DecisaoCreditoRepository decisaoRepo,
                           MlServiceClient mlClient) {
-        this.empresaRepo = empresaRepo;
+        this.empresaResolver = empresaResolver;
         this.finRepo = finRepo;
         this.decisaoRepo = decisaoRepo;
         this.mlClient = mlClient;
     }
 
     @Transactional
-    public DecisaoResponse decidir(String empresaId) {
-        Empresa emp = empresaRepo.findById(empresaId)
-                .orElseThrow(() -> new IllegalArgumentException("Empresa não encontrada: " + empresaId));
+    public DecisaoResponse decidir(String empresaIdentifier) {
+        Empresa emp = empresaResolver.resolve(empresaIdentifier);
+        String empresaId = emp.getId();
 
         EmpresaFinanceiro fin = finRepo.findTopByEmpresaIdOrderByDtRefDesc(empresaId)
                 .orElseThrow(() -> new IllegalStateException("Sem dados financeiros para empresa: " + empresaId));
@@ -116,4 +115,3 @@ public class DecisaoService {
         );
     }
 }
-

@@ -2,10 +2,12 @@
 package com.credito.core.controller;
 
 import com.credito.core.model.DecisaoCredito;
+import com.credito.core.model.Empresa;
 import com.credito.core.model.dto.DecisaoCreateRequest;
 import com.credito.core.model.dto.DecisaoResponse;
 import com.credito.core.repository.DecisaoCreditoRepository;
 import com.credito.core.service.DecisaoService;
+import com.credito.core.service.EmpresaResolverService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +28,14 @@ public class DecisaoController {
 
     private final DecisaoService decisaoService;
     private final DecisaoCreditoRepository decisaoRepo;
+    private final EmpresaResolverService empresaResolver;
 
     public DecisaoController(DecisaoService decisaoService,
-                             DecisaoCreditoRepository decisaoRepo) {
+                             DecisaoCreditoRepository decisaoRepo,
+                             EmpresaResolverService empresaResolver) {
         this.decisaoService = decisaoService;
         this.decisaoRepo = decisaoRepo;
+        this.empresaResolver = empresaResolver;
     }
 
     // cria decisão calculando score no ML e aplicando regras do PRD
@@ -48,18 +53,19 @@ public class DecisaoController {
         int take = Math.max(1, Math.min(limit == null ? 50 : limit, 200));
 
         if (empresaId != null && !empresaId.trim().isEmpty()) {
-            String normalized = empresaId.trim();
-            List<DecisaoCredito> registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(normalized);
+            Empresa empresa = empresaResolver.resolve(empresaId);
+            String resolvedId = empresa.getId();
+            List<DecisaoCredito> registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(resolvedId);
 
             if (registros.isEmpty()) {
                 try {
-                    log.info("Nenhuma decisão encontrada para {}. Gerando automaticamente via serviço de crédito.", normalized);
-                    decisaoService.decidir(normalized);
+                    log.info("Nenhuma decisão encontrada para {}. Gerando automaticamente via serviço de crédito.", resolvedId);
+                    decisaoService.decidir(resolvedId);
                 } catch (Exception ex) {
-                    log.warn("Falha ao gerar decisão automática para {}: {}", normalized, ex.getMessage());
+                    log.warn("Falha ao gerar decisão automática para {}: {}", resolvedId, ex.getMessage());
                 }
 
-                registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(normalized);
+                registros = decisaoRepo.findByEmpresaIdOrderByDtDecisaoDesc(resolvedId);
             }
 
             return registros.stream()

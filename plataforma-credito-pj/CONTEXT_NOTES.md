@@ -80,6 +80,24 @@
 - `front-end`: abas de Empresa passaram a solicitar decisões filtradas e reaproveitam o histórico retornado pelo score para montar o gráfico de evolução; stubs de teste foram atualizados (score/histórico deixa de ficar vazio ao consultar qualquer CNPJ).
 - Script `ml_service/prewarm_macro_cache.py` define a política recomendada de pré-aquecimento (executar diariamente às 05h BRT para SELIC/IPCA/PIB com horizonte de 6 meses e cache de 12h). Para ativar na produção, configurar `MACRO_CACHE_BACKEND=database`, `MACRO_CACHE_MINUTES=720` e agendar o script via cron/task runner.
 
+## Atualizações recentes (29/set/2025)
+- Investigação do fluxo "empresa → score → decisão" apontou que chamadas aos endpoints de decisão com CNPJ puro (`/decisoes?empresaId=000…`) não resolviam o identificador para o ID canônico (`CNPJ_00001`). Com isso, nenhuma decisão era registrada e o front-end exibia apenas o ponto atual (100%) por falta de histórico.
+- Criado `EmpresaResolverService` centralizando a normalização de identificadores (ID, CNPJ mascarado/dígitos, sufixo). `EmpresaController` e `DecisaoService` passaram a utilizá-lo e `DecisaoController` agora resolve o ID antes de consultar/persistir registros.
+- Adicionados testes cobrindo o cenário de consulta por CNPJ puro em `/decisoes`, garantindo que o serviço gere a decisão automaticamente mesmo quando o cliente não conhece o ID canônico.
+
+## Atualizações recentes (30/set/2025)
+- Adicionada semente automática de decisões (`DecisaoSeeder`) controlada por `credito.decisao.seed-on-startup` (default true no profile Docker). Na inicialização a API resolve empresas sem decisão e chama `DecisaoService.decidir`, evitando carga manual ao navegar na UI. Testes baseados em Spring Boot desabilitam a semente via `@TestPropertySource`.
+- Identificado que o `ml_service` retornava a probabilidade do *mau* pagador (`classe = 1`) como `score`. A Core API e o front, contudo, tratavam o campo como probabilidade de aprovação, invertendo a lógica de crédito (maior risco ⇒ aprovação automática e histórico em 100%).
+- Ajustado `ml_service/scoring.py` para calcular o score com a probabilidade da classe `0` (bom pagador) e manter a consistência numérica com o complemento do risco. A função agora seleciona o modelo disponível, normaliza o intervalo `[0,1]` e continua devolvendo `{score, modelo, versao}` para a API.
+- Atualizado `tests/test_scoring.py` garantindo que o score permaneça dentro do intervalo válido. Reexecutados `DATABASE_URL=sqlite:///ml_service_test.db ../venv/bin/python -m pytest` (11 testes OK) e smoke tests manuais via `curl` em `/ml/v1/score`, `/empresas/{id}/score` e `/decisoes` demonstrando que empresas com saldo negativo passam a ser reprovadas.
+- `front-end/src/app/features/empresa/tabs/tab-score-historico/tab-score-historico.ts` passou a mesclar o histórico mensal retornado pela Core API (`historico`/`historicoTimestamps`) com as decisões persistidas, forçando ordenação cronológica, e agora fixa eixos (0–100%), marcadores e categorias para que o gráfico não fique vazio quando o score é 0%. `npm run build` recompilou o bundle (warning de budget permanece).
+
+## Atualizações recentes (01/out/2025)
+- `ApiService` agora resolve dinamicamente a base do backend: usa `window.__API_BASE_URL__` quando presente, mantém `http://localhost:8080` para hosts locais/loopback (IPv4 e IPv6) e, em ambientes servidos por nginx, assume `${origin}/api`; durante SSR (Node) o fallback continua apontando para `http://core-api:8080`.
+- A aba "Score / Histórico" passou a tratar falhas no cálculo do ML; quando `/empresas/{id}/score` retorna erro, o gráfico é reconstruído só com decisões persistidas e a mensagem de ausência aparece apenas se nenhum ponto for encontrado. O estado visual volta ao padrão ao trocar de empresa.
+- Configuração do nginx do front adicionou proxy reverso em `/api/` para `core-api:8080`, permitindo que o browser utilize a mesma origem do front dentro dos containers Docker.
+- `DecisaoSeeder` deixou de abrir transação para todo o seed. Cada chamada a `DecisaoService.decidir` continua transacional, mas exceções individuais não marcam mais o runner como rollback-only, eliminando o `UnexpectedRollbackException` no boot quando alguma empresa não possui dados financeiros suficientes. O `application.yml` agora define `credito.decisao.seed-on-startup=false` por padrão; para pré-carregar decisões é preciso habilitar explicitamente a flag.
+
 ## Pendências/validações futuras
 1. Reexecutar a suíte do ML Service apontando para Postgres para validar o cenário com FKs reais (`DATABASE_URL=postgresql://...`).
 2. Repassar o fluxo Playwright/navegador para `/empresa/cnpj/...` tanto no `ng serve` quanto no build estático garantindo que o erro NG0203 não ocorre mais.

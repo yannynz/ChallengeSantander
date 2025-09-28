@@ -8,6 +8,7 @@ import com.credito.core.repository.EmpresaFinanceiroRepository;
 import com.credito.core.repository.EmpresaRepository;
 import com.credito.core.repository.ScoreRiscoRepository;
 import com.credito.core.repository.TransacaoRepository;
+import com.credito.core.service.EmpresaResolverService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,6 +50,9 @@ class EmpresaControllerTest {
     @MockBean
     private MlServiceClient mlClient;
 
+    @MockBean
+    private EmpresaResolverService empresaResolver;
+
     @Test
     void shouldReturnScoreWithHistory() throws Exception {
         Empresa empresa = new Empresa();
@@ -69,6 +73,7 @@ class EmpresaControllerTest {
         fev.setVlSldo(10_000.0);
 
         when(empresaRepo.findById("CNPJ_00001")).thenReturn(Optional.of(empresa));
+        when(empresaResolver.resolve("CNPJ_00001")).thenReturn(empresa);
         when(financeiroRepo.findByEmpresaIdOrderByDtRefAsc("CNPJ_00001"))
                 .thenReturn(List.of(jan, fev));
 
