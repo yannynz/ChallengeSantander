@@ -20,7 +20,8 @@
 }
 
 .dashboard__logo {
-  width: 100px;
+  height: 52px;
+  width: auto;
 }
 
 .dashboard__header-search {
@@ -51,7 +52,8 @@
   border-radius: 32px;
   box-shadow: 0 24px 48px rgba(16, 24, 40, 0.12);
   padding: 3rem 3.5rem;
-  width: 700px;
+  max-width: 520px;
+  width: 100%;
   text-align: center;
 }
 
@@ -208,8 +210,7 @@ mat-card h3 {
   color: rgba(255, 255, 255, 0.85);
 }
 
-.search-input--header:focus {
-  background-color: transparent;
+\.search-input--header:focus {\n  background-color: transparent;\n
   box-shadow: none;
 }
 
@@ -285,37 +286,4 @@ mat-card h3 {
     width: 40px;
     height: 40px;
   }
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.card-link {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0);
-  border-radius: 999px;
-  color: #ec0000;
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding: 0.35rem 0.9rem;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
-}
-
-.card-link:hover:not([disabled]),
-.card-link:focus-visible:not([disabled]) {
-  color: #b30909;
-  border-color: #ffdada;
-  background-color: #fff2f2;
-  outline: none;
-  transform: translateY(-1px);
-}
-
-.card-link[disabled] {
-  color: rgba(16, 24, 40, 0.4);
-  cursor: not-allowed;
 }

@@ -1,23 +1,7 @@
-import {
-  AfterViewInit,
-  Component,
-  DestroyRef,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
-
+import { MatCardModule } from '@angular/material/card';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import {
   ApexAxisChartSeries,
@@ -29,14 +13,13 @@ import {
   ApexYAxis,
   ApexMarkers,
 } from 'ng-apexcharts';
-
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, finalize, map, of } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
 import { DataSet, Network, Node, Edge } from 'vis-network/standalone';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import {
   ApiService,
-  EmpresaSummary,
   EmpresaScoreResponse,
   EmpresaRedeResponse,
   Decisao,
@@ -61,32 +44,20 @@ type MacroChart = {
   dataLabels: ApexDataLabels;
 };
 
+type ViewState = 'initial' | 'loading' | 'ready' | 'error';
+
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatCardModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    NgApexchartsModule,
-  ],
+  imports: [CommonModule, FormsModule, MatCardModule, NgApexchartsModule],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
 })
-export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
-  constructor(
-    private router: Router,
-    private readonly api: ApiService,
-    private readonly destroyRef: DestroyRef
-  ) {}
-
+export class DashboardComponent implements OnInit, OnDestroy {
   term = '';
 
-  empresas = signal<EmpresaSummary[]>([]);
-  private currentEmpresaId: string | null = null;
+  viewState = signal<ViewState>('initial');
+  viewMessage = signal<string | null>(null);
 
   scoreLoading = signal(false);
   scoreError = signal<string | null>(null);
@@ -126,13 +97,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     stroke: { curve: 'smooth', width: 3 },
     dataLabels: { enabled: false },
   });
-  macroFonte = signal<string[]>([]);
-
-  private readonly macroSeriesConfig = [
-    { id: 'selic', label: 'Selic (%)' },
-    { id: 'ipca', label: 'IPCA (%)' },
-    { id: 'pib', label: 'PIB (%)' },
-  ];
 
   alertasLoading = signal(false);
   alertasError = signal<string | null>(null);
@@ -144,30 +108,62 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   redeLoading = signal(false);
   redeError = signal<string | null>(null);
   hasRedeData = signal(false);
-  private network?: Network;
-  private graphReady = false;
-  private pendingRedeId: string | null = null;
 
-  @ViewChild('graph', { static: true }) graphRef!: ElementRef<HTMLDivElement>;
+  private currentEmpresaId: string | null = null;
+  private network?: Network;
+  private pendingRedeId: string | null = null;
+  private graphHost?: ElementRef<HTMLDivElement>;
+
+  constructor(
+    private readonly api: ApiService,
+    private readonly destroyRef: DestroyRef,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
-    this.loadEmpresas();
-    this.loadMacro();
-    this.loadAlertas();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const termParam = (params.get('term') ?? '').trim();
+
+        if (!termParam) {
+          this.term = '';
+          if (this.viewState() !== 'initial') {
+            this.resetDataStates();
+            this.viewState.set('initial');
+          }
+          return;
+        }
+
+        if (termParam === this.term) {
+          return;
+        }
+
+        this.searchTerm(termParam, { source: 'query' });
+      });
   }
 
-  ngAfterViewInit(): void {
-    this.graphReady = true;
-    if (this.pendingRedeId) {
-      this.loadRede(this.pendingRedeId);
+  @ViewChild('graph')
+  set graphRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.graphHost = ref;
+    if (ref && this.pendingRedeId) {
+      const pending = this.pendingRedeId;
       this.pendingRedeId = null;
-    } else if (this.currentEmpresaId) {
-      this.loadRede(this.currentEmpresaId);
+      this.loadRede(pending);
     }
+  }
+
+  get graphRef(): ElementRef<HTMLDivElement> | undefined {
+    return this.graphHost;
   }
 
   ngOnDestroy(): void {
     this.destroyNetwork();
+  }
+
+  empresaSelecionada(): string | null {
+    return this.currentEmpresaId;
   }
 
   onSearch(): void {
@@ -176,73 +172,131 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    this.searchTerm(raw, { source: 'user' });
+  }
+
+  private searchTerm(raw: string, opts: { source: 'user' | 'query' }): void {
     const canonical = this.toCanonicalIdentifier(raw);
     if (!canonical) {
       return;
     }
 
-    if (canonical.startsWith('CNPJ_') || /^\d{14}$/.test(canonical)) {
-      this.router.navigate(['/empresa/cnpj', canonical]);
-    } else {
-      this.router.navigate(['/empresa', canonical]);
-    }
-  }
+    this.term = canonical;
 
-  private toCanonicalIdentifier(term: string): string | null {
-    const trimmed = term.trim();
-    if (!trimmed) {
-      return null;
+    if (opts.source === 'user') {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { term: canonical },
+        queryParamsHandling: 'merge',
+      });
     }
 
-    const digits = trimmed.replace(/\D/g, '');
-    if (digits) {
-      if (digits.length >= 14) {
-        const normalized = digits.slice(-14);
-        return normalized.padStart(14, '0');
-      }
-      const suffix = digits.slice(-5).padStart(5, '0');
-      return `CNPJ_${suffix}`;
-    }
+    this.viewState.set('loading');
+    this.viewMessage.set(null);
+    this.resetDataStates();
 
-    return trimmed.toUpperCase();
-  }
-
-  private loadEmpresas(): void {
     this.api
-      .getEmpresas()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (lista) => {
-          this.empresas.set(lista);
-          const primeira = lista[0];
-          const id = (primeira?.id ?? primeira?.cnpj ?? '').toString().trim();
-          if (!id) {
-            this.scoreError.set('Nenhuma empresa encontrada.');
-            this.redeError.set('Nenhuma empresa encontrada.');
-            return;
-          }
+      .resolveEmpresaId(canonical)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError((err) => {
+          console.error('Erro ao resolver empresa', err);
+          this.handleSearchError('Nao encontramos dados para o identificador informado.');
+          return of('');
+        })
+      )
+      .subscribe((resolved) => {
+        const id = (resolved || '').trim();
+        if (!id) {
+          this.handleSearchError('Nao encontramos dados para o identificador informado.');
+          return;
+        }
 
-          this.currentEmpresaId = id;
-          this.loadScore(id);
-          this.scheduleRede(id);
-        },
-        error: (err) => {
-          console.error('Erro ao buscar empresas', err);
-          this.scoreError.set('Nao foi possivel carregar as empresas.');
-          this.redeError.set('Nao foi possivel carregar as empresas.');
-        },
+        this.currentEmpresaId = id;
+        this.viewState.set('ready');
+        this.loadScore(id);
+        this.scheduleRede(id);
+        this.loadMacro();
+        this.loadAlertas();
       });
   }
 
+  private handleSearchError(message: string): void {
+    this.currentEmpresaId = null;
+    this.viewState.set('error');
+    this.viewMessage.set(message);
+    this.destroyNetwork();
+  }
+
+  goToDetalhe(section: 'score' | 'rede' | 'macro' | 'decisoes'): void {
+    const term = (this.currentEmpresaId ?? this.term).trim();
+
+    if (section === 'macro') {
+      if (term) {
+        this.router.navigate(['/kpis'], { queryParams: { term } });
+      } else {
+        this.router.navigate(['/kpis']);
+      }
+      return;
+    }
+
+    if (!this.currentEmpresaId) {
+      return;
+    }
+
+    const baseParams: Record<string, string> = term ? { term } : {};
+
+    if (section === 'rede') {
+      this.router.navigate(['/empresa', this.currentEmpresaId], { queryParams: { ...baseParams, tab: 'rede' } });
+      return;
+    }
+
+    if (section === 'decisoes') {
+      this.router.navigate(['/empresa', this.currentEmpresaId], { queryParams: { ...baseParams, tab: 'decisoes' } });
+      return;
+    }
+
+    this.router.navigate(['/empresa', this.currentEmpresaId], {
+      queryParams: Object.keys(baseParams).length ? baseParams : undefined,
+    });
+  }
+
+  private resetDataStates(): void {
+    this.currentEmpresaId = null;
+    this.scoreLoading.set(false);
+    this.scoreError.set(null);
+    this.scoreInfo.set(null);
+    this.scoreChart.set(this.createScoreChart([], []));
+
+    this.redeLoading.set(false);
+    this.redeError.set(null);
+    this.hasRedeData.set(false);
+    this.pendingRedeId = null;
+    this.destroyNetwork();
+
+    this.macroLoading.set(false);
+    this.macroError.set(null);
+    this.macro.set({
+      series: [],
+      chart: { type: 'line', height: 260 },
+      xaxis: { categories: [] },
+      stroke: { curve: 'smooth', width: 3 },
+      dataLabels: { enabled: false },
+    });
+
+    this.alertasLoading.set(false);
+    this.alertasError.set(null);
+    this.alertasSeries.set([]);
+    this.alertasXAxis.set({ categories: [] });
+  }
+
   private loadScore(empresaId: string): void {
-    console.debug('[Dashboard] Solicitando score para empresa', empresaId);
     this.scoreLoading.set(true);
     this.api
       .getEmpresaScore(empresaId)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.scoreLoading.set(false)))
       .subscribe({
         next: (score) => {
-          console.debug('[Dashboard] Score recebido', score);
           this.scoreError.set(null);
           this.scoreInfo.set(score);
           this.updateScoreChart(score);
@@ -257,7 +311,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private scheduleRede(empresaId: string): void {
-    if (this.graphReady) {
+    if (this.graphRef?.nativeElement) {
       this.loadRede(empresaId);
     } else {
       this.pendingRedeId = empresaId;
@@ -265,7 +319,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadRede(empresaId: string): void {
-    if (!this.graphRef?.nativeElement) {
+    const host = this.graphRef?.nativeElement;
+    if (!host) {
+      this.pendingRedeId = empresaId;
       return;
     }
 
@@ -276,7 +332,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe({
         next: (response) => {
           this.redeError.set(null);
-          this.renderRede(response);
+          this.renderRede(response, host);
         },
         error: (err) => {
           console.error('Erro ao carregar rede', err);
@@ -287,7 +343,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
-  private renderRede(response: EmpresaRedeResponse): void {
+  private renderRede(response: EmpresaRedeResponse, host: HTMLDivElement): void {
     const nodesRaw = Array.isArray(response?.nodes) ? response.nodes : [];
     const edgesRaw = Array.isArray(response?.edges) ? response.edges : [];
 
@@ -345,7 +401,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.network.setData(data);
       this.network.setOptions(options);
     } else {
-      this.network = new Network(this.graphRef.nativeElement, data, options);
+      this.network = new Network(host, data, options);
     }
   }
 
@@ -359,18 +415,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadMacro(): void {
     this.macroLoading.set(true);
     const from = this.defaultFromDate();
-    const horizonte = 6;
-    const seriesIds = this.macroSeriesConfig.map((item) => item.id);
-
     this.api
-      .getMacroSeries(seriesIds, from, horizonte)
+      .getMacro('selic', from)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        map((series) => this.mergeMacroSeries(seriesIds, series)),
+        finalize(() => this.macroLoading.set(false)),
         catchError((err) => {
           console.error('Erro ao carregar macro', err);
           this.macroError.set('Nao foi possivel carregar dados macroeconomicos.');
-          this.macroFonte.set([]);
           this.macro.set({
             series: [],
             chart: { type: 'line', height: 260 },
@@ -378,114 +430,43 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             stroke: { curve: 'smooth', width: 3 },
             dataLabels: { enabled: false },
           });
-          return of<{ id: string; data: MacroForecast | null }[]>([]);
-        }),
-        finalize(() => this.macroLoading.set(false))
+          return of<MacroForecast | null>(null);
+        })
       )
-      .subscribe((macroList) => {
-        if (!macroList?.length) {
-          this.macroFonte.set([]);
+      .subscribe((macro) => {
+        if (!macro) {
           return;
         }
 
         this.macroError.set(null);
-        this.updateMacroChart(macroList);
+        this.updateMacroChart(macro);
       });
   }
 
-  private mergeMacroSeries(
-    requestedIds: string[],
-    payload: MacroForecast[]
-  ): Array<{ id: string; data: MacroForecast | null }> {
-    const responseById = new Map<string, MacroForecast>();
-    const fallbackEntries: Array<{ id: string; data: MacroForecast | null }> = [];
+  private updateMacroChart(macro: MacroForecast): void {
+    const historico = Array.isArray(macro?.serie)
+      ? macro.serie.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+      : [];
+    const forecast = Array.isArray(macro?.forecast)
+      ? macro.forecast.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+      : [];
 
-    for (const item of payload ?? []) {
-      if (!item) {
-        continue;
-      }
-      const key = (item.serieId ?? item.requestedSerie ?? '').toLowerCase();
-      if (key) {
-        responseById.set(key, item);
-      } else {
-        fallbackEntries.push({ id: `serie_${fallbackEntries.length}`, data: item });
-      }
-    }
+    const total = Math.max(1, historico.length + forecast.length);
+    const categories = Array.from({ length: total }, (_, idx) =>
+      idx < historico.length ? `H${idx + 1}` : `F${idx - historico.length + 1}`
+    );
 
-    const mapped = requestedIds.map((requested) => {
-      const key = requested.toLowerCase();
-      const data = responseById.get(key) ?? null;
-      responseById.delete(key);
-      return { id: requested, data };
-    });
+    const historicoData = Array.from({ length: total }, (_, idx) =>
+      idx < historico.length ? historico[idx] : null
+    );
+    const forecastData = Array.from({ length: total }, (_, idx) =>
+      idx < historico.length ? null : forecast[idx - historico.length] ?? null
+    );
 
-    responseById.forEach((data, key) => {
-      if (!requestedIds.some((requested) => requested.toLowerCase() === key)) {
-        mapped.push({ id: key, data });
-      }
-    });
-
-    return mapped.concat(fallbackEntries);
-  }
-
-  private updateMacroChart(macroList: Array<{ id: string; data: MacroForecast | null }>): void {
-    const valid = macroList.filter(({ data }) => Array.isArray(data?.serie) && data?.historicoTimestamps);
-    if (!valid.length) {
-      this.macro.set({
-        series: [],
-        chart: { type: 'line', height: 260 },
-        xaxis: { categories: [] },
-        stroke: { curve: 'smooth', width: 3 },
-        dataLabels: { enabled: false },
-      });
-      this.macroFonte.set([]);
-      return;
-    }
-
-    const categoriesSet = new Set<string>();
-    valid.forEach(({ data }) => {
-      data?.historicoTimestamps?.forEach((ts) => categoriesSet.add(this.formatMacroLabel(ts)));
-      data?.forecastTimestamps?.forEach((ts) => categoriesSet.add(this.formatMacroLabel(ts)));
-    });
-
-    const categories = Array.from(categoriesSet.values()).sort((a, b) => {
-      const diff = new Date(a).valueOf() - new Date(b).valueOf();
-      return Number.isNaN(diff) ? a.localeCompare(b) : diff;
-    });
-
-    const series: ApexAxisChartSeries = valid.map(({ id, data }) => {
-      const historicoMap = new Map<string, number>();
-      const forecastMap = new Map<string, number>();
-
-      (data?.historicoTimestamps ?? []).forEach((ts, idx) => {
-        const value = data?.serie?.[idx];
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          historicoMap.set(this.formatMacroLabel(ts), value);
-        }
-      });
-
-      (data?.forecastTimestamps ?? []).forEach((ts, idx) => {
-        const value = data?.forecast?.[idx];
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          forecastMap.set(this.formatMacroLabel(ts), value);
-        }
-      });
-
-      const dataset = categories.map((ts) => {
-        if (historicoMap.has(ts)) {
-          return historicoMap.get(ts) ?? null;
-        }
-        if (forecastMap.has(ts)) {
-          return forecastMap.get(ts) ?? null;
-        }
-        return null;
-      });
-
-      return {
-        name: this.resolveMacroLabel(id, data?.descricao),
-        data: dataset,
-      };
-    });
+    const series: ApexAxisChartSeries = [
+      { name: 'Historico', data: historicoData },
+      { name: 'Forecast', data: forecastData },
+    ];
 
     this.macro.set({
       series,
@@ -494,34 +475,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       stroke: { curve: 'smooth', width: 3 },
       dataLabels: { enabled: false },
     });
-
-    const fontes = new Set<string>();
-    valid.forEach(({ data }) => {
-      if (data?.fonte) {
-        fontes.add(data.fonte);
-      }
-    });
-    this.macroFonte.set(Array.from(fontes.values()));
-  }
-
-  private resolveMacroLabel(id: string, descricao?: string): string {
-    const config = this.macroSeriesConfig.find((serie) => serie.id === id.toLowerCase());
-    if (config) {
-      return config.label;
-    }
-    if (descricao) {
-      return descricao;
-    }
-    return id.toUpperCase();
-  }
-
-  private formatMacroLabel(value: string | number): string {
-    const text = String(value);
-    const parsed = new Date(text);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toISOString().slice(0, 10);
-    }
-    return text;
   }
 
   private loadAlertas(): void {
@@ -550,8 +503,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           this.alertasXAxis.set({ categories });
         },
         error: (err) => {
-          console.error('Erro ao carregar alertas', err);
-          this.alertasError.set('Nao foi possivel carregar o resumo das decisoes.');
+          console.error('Erro ao carregar Decisoes', err);
+          this.alertasError.set('Nao foi possivel carregar o resumo das Decisoes.');
           this.alertasSeries.set([{ name: 'Decisoes', data: [] }]);
           this.alertasXAxis.set({ categories: [] });
         },
@@ -562,6 +515,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const date = new Date();
     date.setMonth(date.getMonth() - 12);
     return date.toISOString().slice(0, 10);
+  }
+
+  private toCanonicalIdentifier(term: string): string | null {
+    const trimmed = term.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits) {
+      if (digits.length >= 14) {
+        const normalized = digits.slice(-14);
+        return normalized.padStart(14, '0');
+      }
+      const suffix = digits.slice(-5).padStart(5, '0');
+      return `CNPJ_${suffix}`;
+    }
+
+    return trimmed.toUpperCase();
   }
 
   private toPercent(value: number | null | undefined): number {
@@ -609,7 +581,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const categories = points.map((point) => point.label);
     const data = points.map((point) => point.value);
-    console.debug('[Dashboard] Atualizando grafico de score', { categories, data });
     this.scoreChart.set(this.createScoreChart(data, categories));
   }
 

@@ -2,9 +2,9 @@ import 'zone.js';
 import 'zone.js/testing';
 import { getTestBed, TestBed } from '@angular/core/testing';
 import {
-  BrowserDynamicTestingModule,
-  platformBrowserDynamicTesting,
-} from '@angular/platform-browser-dynamic/testing';
+  BrowserTestingModule,
+  platformBrowserTesting,
+} from '@angular/platform-browser/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { ChartComponent } from 'ng-apexcharts';
@@ -15,7 +15,7 @@ declare const beforeEach:
   | ((fn: () => void | Promise<void>) => void)
   | undefined;
 
-getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+getTestBed().initTestEnvironment(BrowserTestingModule, platformBrowserTesting(), {
   teardown: { destroyAfterEach: true },
 });
 

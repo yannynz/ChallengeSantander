@@ -23,8 +23,8 @@ type DecisaoView = {
     <mat-card>
       <mat-card-title>Decisoes</mat-card-title>
 
-      <div *ngIf="loading()" class="px-3 py-4 text-sm">Carregando decisoes...</div>
-      <div *ngIf="!loading() && error()" class="px-3 py-4 text-sm" style="color:#b91c1c;">{{ error() }}</div>
+      <div *ngIf="loading()" class="px-3 py-4 text-sm tab-subtitle">Carregando decisoes...</div>
+      <div *ngIf="!loading() && error()" class="px-3 py-4 text-sm tab-subtitle" style="color:#b91c1c;">{{ error() }}</div>
 
       <ng-container *ngIf="!loading() && !error()">
         <ul *ngIf="decisoes().length; else emptyTpl" class="px-4 py-2">
@@ -39,7 +39,7 @@ type DecisaoView = {
       </ng-container>
 
       <ng-template #emptyTpl>
-        <div class="px-3 py-4 text-sm">Nenhuma decisao encontrada para esta empresa.</div>
+        <div class="px-3 py-4 text-sm tab-subtitle">Nenhuma decisao encontrada para esta empresa.</div>
       </ng-template>
     </mat-card>
   `,

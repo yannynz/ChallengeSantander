@@ -44,7 +44,7 @@ const createEmptyChart = (): ChartOptions => ({
     <mat-card>
       <mat-card-title>Score e Historico</mat-card-title>
 
-      <div class="px-3 pb-2 text-sm" *ngIf="scorePercent() !== null && !loading() && !error()">
+      <div class="px-3 pb-2 text-sm tab-subtitle" *ngIf="scorePercent() !== null && !loading() && !error()">
         Score atual: {{ scoreText() }}%
       </div>
 

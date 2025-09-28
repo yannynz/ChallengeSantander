@@ -1,8 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../shared/auth';
@@ -10,8 +8,9 @@ import { AuthService } from '../../../shared/auth';
 @Component({
   standalone: true,
   selector: 'app-login',
-  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule],
-  templateUrl: './login.html'
+  imports: [CommonModule, FormsModule, MatButtonModule],
+  templateUrl: './login.html',
+  styleUrls: ['./login.scss']
 })
 export class LoginComponent {
   email = 'analista@pjcredit';

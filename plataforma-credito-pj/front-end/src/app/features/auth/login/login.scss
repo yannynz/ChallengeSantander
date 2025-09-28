@@ -1,0 +1,144 @@
+:host {
+  display: block;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  padding: 2rem;
+}
+
+.login-card {
+  display: flex;
+  width: 1100px;
+  background-color: #ffffff;
+  border-radius: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  height: 600px;
+}
+
+.login-form-section {
+  flex: 1 1 50%;
+  background-color: #ffffff;
+  padding: 3rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-title {
+  margin: 0 0 2rem;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #101828;
+  text-align: center;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.login-field-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #475467;
+}
+
+.login-input {
+  width: 100%;
+  padding: 0.95rem 1.1rem;
+  border: none;
+  border-radius: 20px;
+  background-color: #f2f3f5;
+  color: #101828;
+  font-size: 1rem;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.login-input::placeholder {
+  color: #667085;
+}
+
+.login-input:focus {
+  outline: none;
+  background-color: #ebecef;
+  box-shadow: 0 0 0 2px rgba(236, 0, 0, 0.15);
+}
+
+.login-submit {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  height: 55px;
+  font-weight: 600;
+  border-radius: 20px;
+  background-color: #ec0000;
+  color: #ffffff;
+}
+
+.login-brand-section {
+  flex: 1 1 50%;
+  background-color: #ec0000;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1.5rem;
+  border-radius: 40px;
+  padding: 3rem 2.5rem;
+}
+
+.login-brand-logo {
+  width: min(260px, 70%);
+  height: auto;
+}
+
+.login-brand-message {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .login-card {
+    max-width: 640px;
+  }
+
+  .login-form-section,
+  .login-brand-section {
+    padding: 2.5rem 2rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .login-card {
+    flex-direction: column;
+  }
+
+  .login-brand-section {
+    order: -1;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+  }
+
+  .login-form-section {
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+  }
+}

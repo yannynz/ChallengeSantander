@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { ApiService, Decisao } from '../../../shared/api';
@@ -16,8 +17,19 @@ import { ApiService, Decisao } from '../../../shared/api';
 export class KpisComponent implements OnInit {
   constructor(
     private readonly api: ApiService,
-    private readonly destroyRef: DestroyRef
+    private readonly destroyRef: DestroyRef,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute
   ) {}
+
+  goBack(): void {
+    const term = (this.route.snapshot.queryParamMap.get('term') ?? '').trim();
+    if (term) {
+      this.router.navigate(['/dashboard'], { queryParams: { term } });
+    } else {
+      this.router.navigate(['/dashboard']);
+    }
+  }
 
   loading = signal(false);
   error = signal<string | null>(null);
