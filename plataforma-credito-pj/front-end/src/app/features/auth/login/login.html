@@ -1,1 +1,37 @@
-<p>login works!</p>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-form-section">
+      <h1 class="login-title">Entrar</h1>
+      <form (ngSubmit)="submit()" #f="ngForm" class="login-form">
+        <label class="login-field">
+          <input
+            type="email"
+            name="email"
+            class="login-input"
+            placeholder="E-mail"
+            [(ngModel)]="email"
+            required
+          />
+        </label>
+
+        <label class="login-field">
+          <input
+            type="password"
+            name="password"
+            class="login-input"
+            placeholder="Senha"
+            [(ngModel)]="password"
+            required
+          />
+        </label>
+
+        <button mat-flat-button type="submit" class="login-submit" [disabled]="!f.valid">
+          Acessar
+        </button>
+      </form>
+    </div>
+    <div class="login-brand-section">
+      <img src="/img/logo-creditthink.png" alt="CreditThink" class="login-brand-logo" />
+    </div>
+  </div>
+</div>

@@ -9,7 +9,7 @@ public class DecisaoCredito {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
+    private Long id;
 
     // TEXT no banco
     @Column(name = "empresa_id", nullable = false)
@@ -40,8 +40,8 @@ public class DecisaoCredito {
     private String decisao;
 
     // Getters e Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getEmpresaId() { return empresaId; }
     public void setEmpresaId(String empresaId) { this.empresaId = empresaId; }
@@ -71,4 +71,3 @@ public class DecisaoCredito {
     public void setMotivo(String motivo) { this.motivo = motivo; }
 
 }
-

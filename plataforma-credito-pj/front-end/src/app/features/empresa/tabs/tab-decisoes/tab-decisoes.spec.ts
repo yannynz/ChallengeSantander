@@ -1,18 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZoneChangeDetection } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { TabDecisoes } from './tab-decisoes';
+import { TabDecisoesComponent } from './tab-decisoes';
 
-describe('TabDecisoes', () => {
-  let component: TabDecisoes;
-  let fixture: ComponentFixture<TabDecisoes>;
+describe('TabDecisoesComponent', () => {
+  let component: TabDecisoesComponent;
+  let fixture: ComponentFixture<TabDecisoesComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TabDecisoes]
+      imports: [TabDecisoesComponent, HttpClientTestingModule],
+      providers: [provideZoneChangeDetection()]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(TabDecisoes);
+    fixture = TestBed.createComponent(TabDecisoesComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -1,1 +1,30 @@
-<p>kpis works!</p>
+<div class="kpis-page">
+  <div class="kpis-toolbar">
+    <button type="button" class="kpis-back" (click)="goBack()">Voltar</button>
+  </div>
+
+  <section class="kpis" *ngIf="!loading() && !error(); else stateTpl">
+    <mat-card>
+      <mat-card-title>Score Medio</mat-card-title>
+      <div class="value">{{ scoreMedio() }}%</div>
+      <div class="meta">Base: {{ totalAnalises() }} decisoes</div>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-title>Taxa de Aprovacao</mat-card-title>
+      <div class="value">{{ aprovacao() }}%</div>
+      <div class="meta">Analisadas: {{ totalAnalises() }}</div>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-title>Limite Medio</mat-card-title>
+      <div class="value">{{ limiteMedio() }}</div>
+      <div class="meta">Base: {{ totalAnalises() }} decisoes</div>
+    </mat-card>
+  </section>
+
+  <ng-template #stateTpl>
+    <div *ngIf="loading()" class="px-3 py-2 text-sm">Carregando indicadores...</div>
+    <div *ngIf="!loading() && error()" class="px-3 py-2 text-sm" style="color:#b91c1c;">{{ error() }}</div>
+  </ng-template>
+</div>

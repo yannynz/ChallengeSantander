@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from scoring import calcular_score
 from sna import calcular_centralidades
 from forecasting import forecast_arima
+from macro import get_macro_forecast, MacroSourceError
 import networkx as nx
 
 app = FastAPI(title="ML-Service", version="1.0.0")
@@ -51,7 +52,11 @@ class ForecastRequest(BaseModel):
 
 @app.post("/ml/v1/forecast/arima")
 def forecast(req: ForecastRequest):
-    return {"forecast": forecast_arima(req.serie, req.horizonte)}
+    try:
+        forecast_values = forecast_arima(req.serie, req.horizonte)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"forecast": forecast_values}
 
 
 # ============================
@@ -80,3 +85,21 @@ def sna(req: SNARequest):
     clusters = {node: cid for cid, comp in enumerate(nx.strongly_connected_components(G)) for node in comp}
     return {"grau": grau, "betweenness": betweenness, "eigenvector": eigenvector, "clusters": clusters}
 
+
+# ============================
+# MACRO DATA
+# ============================
+
+
+@app.get("/ml/v1/macro/{serie}")
+def macro(
+    serie: str,
+    from_date: str | None = Query(default=None, alias="from"),
+    horizonte: int | None = None,
+):
+    try:
+        return get_macro_forecast(serie, from_date, horizonte)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MacroSourceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

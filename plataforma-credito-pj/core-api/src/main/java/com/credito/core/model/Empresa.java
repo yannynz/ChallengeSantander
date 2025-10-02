@@ -29,5 +29,7 @@ public class Empresa {
 
     public LocalDate getDtAbrt() { return dtAbrt; }
     public void setDtAbrt(LocalDate dtAbrt) { this.dtAbrt = dtAbrt; }
-}
 
+    public String getCnpj() { return cnpj; }
+    public void setCnpj(String cnpj) { this.cnpj = cnpj; }
+}

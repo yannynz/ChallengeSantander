@@ -30,12 +30,7 @@
               "src/styles.scss",
               "node_modules/@coreui/coreui/dist/css/coreui.min.css",
               "node_modules/@angular/material/prebuilt-themes/indigo-pink.css"
-            ],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            ]
           },
           "configurations": {
             "production": {
@@ -89,6 +84,10 @@
             ],
             "styles": [
               "src/styles.scss"
+            ],
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
             ]
           }
         }

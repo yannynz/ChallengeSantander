@@ -1,0 +1,64 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+
+.kpis mat-card {
+  grid-column: span 12;
+}
+
+.kpis mat-card-title {
+  margin-left: 10px;
+}
+
+@media (min-width: 768px) {
+  .kpis mat-card {
+    grid-column: span 4;
+  }
+}
+
+.value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+}
+
+.meta {
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.kpis-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.kpis-toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.kpis-back {
+  border: 1px solid #ec0000;
+  border-radius: 999px;
+  background-color: #ec0000;
+  color: #ffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 15px;
+  margin-left: 15px;
+  padding: 0.55rem 1.6rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.kpis-back:hover,
+.kpis-back:focus-visible {
+  background-color: #ec0000;
+  color: #ffffff;
+  outline: none;
+  transform: translateY(-1px);
+}
