@@ -22,11 +22,9 @@ def _normalize_cnpj(identifier: str) -> Optional[str]:
 def load_base1(filepath: str):
     engine = get_engine()
 
-    # Ler planilha
     base1 = pd.read_excel(filepath, sheet_name="Base 1 - ID")
     base1.columns = base1.columns.str.strip().str.upper()
 
-    # Empresa
     empresas = base1[["ID", "DS_CNAE", "DT_ABRT"]].drop_duplicates()
     empresas = empresas.rename(columns={
         "ID": "id",
@@ -50,7 +48,6 @@ def load_base1(filepath: str):
 
     upsert_dataframe(engine, payload, "empresa", ["id"])
 
-    # Financeiro
     fin = base1[["ID", "DT_REFE", "VL_FATU", "VL_SLDO"]].copy()
     fin = fin.rename(columns={
         "ID": "empresa_id",

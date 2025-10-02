@@ -1,4 +1,3 @@
-// src/main/java/com/credito/core/controller/DecisaoController.java
 package com.credito.core.controller;
 
 import com.credito.core.model.DecisaoCredito;
@@ -42,13 +41,11 @@ public class DecisaoController {
         this.empresaResolver = empresaResolver;
     }
 
-    // cria decisão calculando score no ML e aplicando regras do PRD
     @PostMapping
     public DecisaoResponse criar(@Valid @RequestBody DecisaoCreateRequest req) {
         return decisaoService.decidir(req.empresaId());
     }
 
-    // lista decisões já persistidas (com filtro opcional por empresa)
     @GetMapping
     public List<DecisaoCredito> listar(
             @RequestParam(name = "empresaId", required = false) String empresaId,

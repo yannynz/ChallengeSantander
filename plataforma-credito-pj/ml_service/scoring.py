@@ -5,7 +5,6 @@ import joblib
 import math
 import pandas as pd
 
-# Carregar modelos salvos
 MODEL_PATH = Path(__file__).resolve().parent / "models"
 
 try:

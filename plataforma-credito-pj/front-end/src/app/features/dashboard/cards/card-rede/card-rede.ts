@@ -1,9 +1,7 @@
-// src/app/features/dashboard/cards/card-rede/card-rede.ts
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { DataSet, Network, Node, Edge } from 'vis-network/standalone';
-// se você precisa do bundle UMD no browser, mantenha a lib instalada como está.
 
 @Component({
   standalone: true,

@@ -31,7 +31,6 @@ public class ScoreRisco {
     @Column(name = "auc_valid")
     private Double aucValid;
 
-    // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

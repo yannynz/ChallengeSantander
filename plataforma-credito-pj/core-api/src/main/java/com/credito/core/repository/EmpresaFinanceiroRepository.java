@@ -1,4 +1,3 @@
-// src/main/java/com/credito/core/repository/EmpresaFinanceiroRepository.java
 package com.credito.core.repository;
 
 import com.credito.core.model.EmpresaFinanceiro;

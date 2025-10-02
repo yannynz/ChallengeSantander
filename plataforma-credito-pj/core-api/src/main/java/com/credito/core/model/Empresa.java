@@ -1,4 +1,3 @@
-// src/main/java/com/credito/core/model/Empresa.java
 package com.credito.core.model;
 
 import jakarta.persistence.*;
@@ -8,7 +7,7 @@ import java.time.LocalDate;
 @Table(name = "empresa")
 public class Empresa {
     @Id
-    @Column(name = "id", nullable = false)   // TEXT no banco
+    @Column(name = "id", nullable = false)
     private String id;
 
     @Column(name = "cnpj")
@@ -20,7 +19,6 @@ public class Empresa {
     @Column(name = "dt_abrt")
     private LocalDate dtAbrt;
 
-    // Getters e Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

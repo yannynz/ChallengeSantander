@@ -1,4 +1,3 @@
-// src/main/java/com/credito/core/error/GlobalExceptionHandler.java
 package com.credito.core.error;
 
 import org.springframework.http.HttpStatus;

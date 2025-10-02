@@ -8,10 +8,6 @@ import networkx as nx
 
 app = FastAPI(title="ML-Service", version="1.0.0")
 
-# ============================
-# SCORE RISCO
-# ============================
-
 class ScoreRequest(BaseModel):
     features: dict = {
         "idade": 5,
@@ -34,10 +30,6 @@ def score_risco(req: ScoreRequest):
     return {"score": score, "modelo": modelo_usado, "versao": "1.0.0"}
 
 
-# ============================
-# FORECAST (ARIMA)
-# ============================
-
 class ForecastRequest(BaseModel):
     serie: list[float]
     horizonte: int
@@ -58,10 +50,6 @@ def forecast(req: ForecastRequest):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"forecast": forecast_values}
 
-
-# ============================
-# SNA (Centralidades)
-# ============================
 
 class Edge(BaseModel):
     source: str
@@ -85,10 +73,6 @@ def sna(req: SNARequest):
     clusters = {node: cid for cid, comp in enumerate(nx.strongly_connected_components(G)) for node in comp}
     return {"grau": grau, "betweenness": betweenness, "eigenvector": eigenvector, "clusters": clusters}
 
-
-# ============================
-# MACRO DATA
-# ============================
 
 
 @app.get("/ml/v1/macro/{serie}")

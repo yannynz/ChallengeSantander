@@ -1,4 +1,3 @@
-// src/app/shared/auth.ts
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
@@ -18,7 +17,7 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean { return !!this.token; }
-  isAuth(): boolean { return this.isLoggedIn(); } // compatível com o que você já usou
+  isAuth(): boolean { return this.isLoggedIn(); }
 
   login(email: string, password: string): boolean {
     if (email?.trim() && password?.trim()) {

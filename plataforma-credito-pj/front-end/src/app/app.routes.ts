@@ -15,8 +15,6 @@ export const routes: Routes = [
 
   { path: 'empresa/cnpj/:cnpj', canActivate: [authGuard],
     loadComponent: () => import('./features/empresa/empresa-page/empresa-page').then(m => m.EmpresaPageComponent) },
-
-  // redireciona para LOGIN por padrão
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   { path: '**', redirectTo: 'login' }
 ];

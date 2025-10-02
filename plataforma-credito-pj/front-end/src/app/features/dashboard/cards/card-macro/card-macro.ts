@@ -1,4 +1,3 @@
-// src/app/features/dashboard/cards/card-macro/card-macro.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';

@@ -13,7 +13,6 @@ def calcular_centralidades(dt_ref: str = None):
 
     engine = get_engine()
 
-    # Selecionar transações
     query = "SELECT id_pgto, id_rcbe, vl, dt_ref FROM transacao"
     if dt_ref:
         query += " WHERE dt_ref = :dt_ref"
@@ -25,12 +24,10 @@ def calcular_centralidades(dt_ref: str = None):
         print("⚠️ Nenhuma transação encontrada")
         return
 
-    # Criar grafo direcionado e ponderado
     G = nx.DiGraph()
     for _, row in df.iterrows():
         G.add_edge(row["id_pgto"], row["id_rcbe"], weight=row["vl"])
 
-    # Métricas de centralidade
     grau = nx.degree_centrality(G)
     betweenness = nx.betweenness_centrality(G, weight="weight", normalized=True)
     try:
@@ -38,13 +35,10 @@ def calcular_centralidades(dt_ref: str = None):
     except nx.NetworkXError:
         eigenvector = {n: 0 for n in G.nodes}
 
-    # Clusters (componentes fortemente conectados)
     clusters = {node: cid for cid, comp in enumerate(nx.strongly_connected_components(G)) for node in comp}
 
-    # Data do cálculo
     dt_calc = date.today()
 
-    # Preparar DataFrame
     records = []
     for empresa_id in G.nodes:
         records.append({
@@ -58,11 +52,9 @@ def calcular_centralidades(dt_ref: str = None):
 
     df_out = pd.DataFrame(records)
 
-    # Inserir no banco
     df_out.to_sql("centralidade_snapshot", engine, if_exists="append", index=False)
 
     print(f"✅ Centralidades calculadas e salvas ({len(df_out)} empresas).")
 
 if __name__ == "__main__":
     calcular_centralidades()
-

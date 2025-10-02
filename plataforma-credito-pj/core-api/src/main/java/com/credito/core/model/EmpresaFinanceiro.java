@@ -1,4 +1,3 @@
-// src/main/java/com/credito/core/model/EmpresaFinanceiro.java
 package com.credito.core.model;
 
 import jakarta.persistence.*;
@@ -12,11 +11,9 @@ public class EmpresaFinanceiro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TEXT no banco
     @Column(name = "empresa_id", nullable = false)
     private String empresaId;
 
-    // data do snapshot financeiro; ajuste se seu campo tiver outro nome
     @Column(name = "dt_ref", nullable = false)
     private LocalDate dtRef;
 
@@ -26,7 +23,6 @@ public class EmpresaFinanceiro {
     @Column(name = "vl_sldo")
     private Double vlSldo;
 
-    // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

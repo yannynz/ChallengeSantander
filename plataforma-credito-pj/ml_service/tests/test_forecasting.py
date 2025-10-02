@@ -8,7 +8,6 @@ def test_forecast_with_sufficient_series():
     result = forecast_arima(serie, horizonte=3)
 
     assert len(result) == 3
-    # ARIMA deve produzir valores contínuos próximos ao último nível.
     assert all(isinstance(value, float) for value in result)
 
 

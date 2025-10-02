@@ -26,7 +26,6 @@ def carregar_dados():
         """
         df = pd.read_sql(text(query), engine)
 
-        # variável alvo
         df["y"] = (df["vl_sldo"] < 0).astype(int)
         df = df.fillna(0)
 
@@ -44,11 +43,9 @@ def treinar_modelos():
 
     print(f"📊 Treinando modelos com {len(df)} registros...")
 
-    # RandomForest
     rf = RandomForestClassifier(n_estimators=200, random_state=42)
     rf.fit(X, y)
 
-    # XGBoost
     xgb = XGBClassifier(
         n_estimators=200,
         random_state=42,
@@ -57,7 +54,6 @@ def treinar_modelos():
     )
     xgb.fit(X, y)
 
-    # salvar
     models_dir = Path(__file__).resolve().parent / "models"
     models_dir.mkdir(exist_ok=True)
 
@@ -72,4 +68,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"🔥 Falha no treinamento: {e}")
         exit(1)
-

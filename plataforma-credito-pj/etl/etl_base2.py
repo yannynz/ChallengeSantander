@@ -15,11 +15,9 @@ def _normalize_excel_date(series: pd.Series) -> pd.Series:
 def load_base2(filepath: str):
     engine = get_engine()
 
-    # Ler planilha
     base2 = pd.read_excel(filepath, sheet_name="Base 2 - Transações")
     base2.columns = base2.columns.str.strip().str.upper()
 
-    # Transações
     trans = base2.rename(columns={
         "ID_PGTO": "id_pgto",
         "ID_RCBE": "id_rcbe",
@@ -40,4 +38,4 @@ def load_base2(filepath: str):
     print("✅ Base 2 carregada com sucesso!")
 
 if __name__ == "__main__":
-        load_base2("Challenge FIAP - Bases.xlsx")
+    load_base2("Challenge FIAP - Bases.xlsx")

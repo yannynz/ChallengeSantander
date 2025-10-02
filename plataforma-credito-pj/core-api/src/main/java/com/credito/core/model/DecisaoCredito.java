@@ -11,7 +11,6 @@ public class DecisaoCredito {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // TEXT no banco
     @Column(name = "empresa_id", nullable = false)
     private String empresaId;
 
@@ -39,7 +38,6 @@ public class DecisaoCredito {
     @Column(name = "decisao")
     private String decisao;
 
-    // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
