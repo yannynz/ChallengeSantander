@@ -1,0 +1,31 @@
+{
+  "classificacao": {
+    "AUC": 0.892,
+    "F1": 0.781,
+    "Recall": 0.804,
+    "Precision": 0.768,
+    "threshold_utilizado": 0.55,
+    "amostra": 1280
+  },
+  "clusterizacao": {
+    "Silhouette": 0.672,
+    "Calinski": 405.2,
+    "clusters": 3,
+    "amostra": 640,
+    "media_faturamento": 182340.52,
+    "media_saldo": 48750.13
+  },
+  "historico_auc": [
+    { "periodo": "2024-04", "auc": 0.836 },
+    { "periodo": "2024-05", "auc": 0.842 },
+    { "periodo": "2024-06", "auc": 0.854 },
+    { "periodo": "2024-07", "auc": 0.861 },
+    { "periodo": "2024-08", "auc": 0.873 },
+    { "periodo": "2024-09", "auc": 0.886 },
+    { "periodo": "2024-10", "auc": 0.892 }
+  ],
+  "atualizado_em": "2025-10-16T20:30:00Z",
+  "fonte": "validation.py",
+  "janela_dias": 180,
+  "drift_psi": 0.018
+}

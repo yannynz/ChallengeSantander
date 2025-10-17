@@ -1,0 +1,66 @@
+<div class="simulador">
+  <div class="simulador__toolbar">
+    <h1>Simulador de Credito</h1>
+    <a routerLink="/dashboard" class="simulador__back">Voltar</a>
+  </div>
+
+  <div class="simulador__grid">
+    <mat-card class="simulador__form-card">
+      <mat-card-title>Configurar cenario</mat-card-title>
+      <form [formGroup]="form" class="simulador__form">
+        <div class="form-control">
+          <div class="form-control__header">
+            <label for="renda">Renda mensal</label>
+            <span>R$ {{ form.value.renda }}</span>
+          </div>
+          <input id="renda" type="range" min="1000" max="30000" step="500" formControlName="renda" />
+        </div>
+
+        <div class="form-control">
+          <div class="form-control__header">
+            <label for="idade">Idade</label>
+            <span>{{ form.value.idade }} anos</span>
+          </div>
+          <input id="idade" type="range" min="18" max="75" step="1" formControlName="idade" />
+        </div>
+
+        <div class="form-control">
+          <div class="form-control__header">
+            <label for="historico">Historico de credito</label>
+            <span>{{ (form.value.historico ?? 0) | number: '1.2-2' }}</span>
+          </div>
+          <input id="historico" type="range" min="0" max="1" step="0.05" formControlName="historico" />
+        </div>
+
+        <div class="form-control">
+          <div class="form-control__header">
+            <label for="conexoes">Conexoes na rede</label>
+            <span>{{ form.value.conexoes_rede }}</span>
+          </div>
+          <input id="conexoes" type="range" min="0" max="50" step="1" formControlName="conexoes_rede" />
+        </div>
+      </form>
+
+      <button type="button" (click)="resetar()">Resetar</button>
+    </mat-card>
+
+    <mat-card class="simulador__resultado">
+      <mat-card-title>Resultado da simulacao</mat-card-title>
+      <div *ngIf="loading()" class="resultado__estado">Calculando cenarios...</div>
+      <div *ngIf="!loading() && error()" class="resultado__estado resultado__estado--erro">{{ error() }}</div>
+
+      <ng-container *ngIf="!loading() && !error() && resultado() as dados">
+        <div class="resultado__score">Score: {{ scorePercent() }}%</div>
+        <div class="resultado__risco">Risco: <span class="risco risco--{{ dados.risco }}">{{ dados.risco }}</span></div>
+        <div class="resultado__limite">Limite sugerido: R$ {{ dados.limite_sugerido | number: '1.0-0' }}</div>
+        <div class="resultado__influencia">Influencia de rede: {{ influenciaPercent() }}%</div>
+        <div class="resultado__modelo" *ngIf="dados.modelo">Modelo: {{ dados.modelo }}</div>
+        <div class="resultado__meta" *ngIf="dados.metadados?.gerado_em || dados.metadados?.fonte">
+          <span *ngIf="dados.metadados?.gerado_em">Gerado em {{ dados.metadados?.gerado_em | date: 'short' }}</span>
+          <span *ngIf="dados.metadados?.fonte">Fonte: {{ dados.metadados?.fonte }}</span>
+        </div>
+        <p class="resultado__mensagem">{{ dados.mensagem }}</p>
+      </ng-container>
+    </mat-card>
+  </div>
+</div>

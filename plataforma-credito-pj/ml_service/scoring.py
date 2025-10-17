@@ -71,19 +71,30 @@ def _probabilidades(model, X: pd.DataFrame) -> Tuple[float, float]:
     return float(min(max(bom, 0.0), 1.0)), float(min(max(risco, 0.0), 1.0))
 
 
+def get_model(modelo: str | None = None) -> Tuple[object, str]:
+    """
+    Retorna instancia de modelo carregado, levantando erro se indisponível.
+    Utilizado pelas rotas reais e pelo módulo de explicabilidade.
+    """
+    model, nome = _select_model(modelo or "rf")
+    if model is None:
+        raise RuntimeError("Nenhum modelo real carregado em models/.")
+    return model, nome
+
+
 def calcular_score(features: dict, modelo: str = "rf") -> Tuple[float, str]:
     X = _prepare_features(features)
-    model, nome_modelo = _select_model(modelo)
-
-    if model is None:
-        return 0.5, "dummy"
+    try:
+        model, nome_modelo = get_model(modelo)
+    except RuntimeError:
+        # Fallback controlado: mantém comportamento anterior
+        model, nome_modelo = _select_model(modelo)
+        if model is None:
+            return 0.5, "dummy"
 
     prob_bom, prob_risco = _probabilidades(model, X)
 
-    # Preferimos a probabilidade do bom pagador como score da aplicação
     score = prob_bom
-
-    # Reforça consistência numérica quando risco possui maior precisão
     if abs((1.0 - prob_risco) - prob_bom) > 1e-6:
         score = float(1.0 - prob_risco)
 

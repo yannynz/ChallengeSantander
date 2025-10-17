@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'master']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      CHROME_BIN: /usr/bin/google-chrome
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        working-directory: plataforma-credito-pj/ml_service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black==24.3.0 flake8==6.1.0
+
+      - name: Run black
+        working-directory: plataforma-credito-pj/ml_service
+        run: black --check .
+
+      - name: Run flake8
+        working-directory: plataforma-credito-pj/ml_service
+        run: flake8 .
+
+      - name: Run pytest
+        working-directory: plataforma-credito-pj/ml_service
+        run: pytest
+
+      - name: Gerar metrics.json
+        working-directory: plataforma-credito-pj/ml_service
+        run: python validation.py
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Run Maven tests
+        working-directory: plataforma-credito-pj/core-api
+        run: mvn -B test
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: plataforma-credito-pj/front-end/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: plataforma-credito-pj/front-end
+        run: npm ci
+
+      - name: Frontend unit tests
+        working-directory: plataforma-credito-pj/front-end
+        run: npm run test:ci
+
+      - name: Build frontend
+        working-directory: plataforma-credito-pj/front-end
+        run: npm run build -- --configuration production
+
+      - name: Docker Compose build
+        working-directory: plataforma-credito-pj
+        run: docker compose build

@@ -1,0 +1,151 @@
+:host {
+  display: block;
+}
+
+.simulador {
+  min-height: 100vh;
+  padding: 2.5rem 3rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.simulador__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.simulador__toolbar h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.simulador__back {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.simulador__grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.simulador__form-card,
+.simulador__resultado {
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.simulador__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-control__header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.form-control__header label {
+  font-weight: 600;
+  color: #111827;
+}
+
+.form-control input[type='range'] {
+  width: 100%;
+  accent-color: #2563eb;
+}
+
+.simulador__form-card button {
+  align-self: flex-start;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  border: none;
+  background-color: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resultado__estado {
+  font-size: 1rem;
+  color: #475569;
+}
+
+.resultado__estado--erro {
+  color: #b91c1c;
+}
+
+.resultado__score {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.resultado__risco,
+.resultado__limite,
+.resultado__influencia {
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.resultado__modelo,
+.resultado__meta {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.risco {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.risco--baixo {
+  color: #16a34a;
+}
+
+.risco--medio {
+  color: #ca8a04;
+}
+
+.risco--moderado {
+  color: #f97316;
+}
+
+.risco--alto {
+  color: #dc2626;
+}
+
+.resultado__mensagem {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .simulador {
+    padding: 2rem 1.5rem;
+  }
+}

@@ -1,0 +1,53 @@
+<div class="explicabilidade">
+  <div class="explicabilidade__toolbar">
+    <h1>Explicabilidade de Credito</h1>
+    <a routerLink="/dashboard" class="explicabilidade__back">Voltar</a>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="explicabilidade__form">
+    <label for="clienteId">Cliente / ID analitico</label>
+    <div class="explicabilidade__form-row">
+      <input id="clienteId" type="text" formControlName="clienteId" placeholder="Ex: CLI001" />
+      <button type="submit">Gerar explicacao</button>
+    </div>
+  </form>
+
+  <section *ngIf="loading()" class="explicabilidade__state">
+    <div class="explicabilidade__card">Calculando contribuicoes dos fatores...</div>
+  </section>
+
+  <section *ngIf="!loading() && error()" class="explicabilidade__state explicabilidade__state--error">
+    <div class="explicabilidade__card">{{ error() }}</div>
+  </section>
+
+  <ng-container *ngIf="!loading() && !error() && explicacao() as dados">
+    <div class="explicabilidade__grid">
+      <mat-card class="explicabilidade__score">
+        <mat-card-title>Score do modelo</mat-card-title>
+        <div class="score">{{ scorePercent() }}%</div>
+        <div class="risco">Risco: <span class="risco__valor risco__valor--{{ riscoAtual() }}">{{ riscoAtual() }}</span></div>
+        <p class="meta">Cliente analisado: {{ dados.id_cliente }}</p>
+        <p class="meta" *ngIf="dados.modelo">Modelo: {{ dados.modelo }}</p>
+        <div class="meta" *ngIf="metadados() as meta">
+          <span *ngIf="meta.gerado_em">Gerado em {{ meta.gerado_em | date: 'short' }}</span>
+          <span *ngIf="meta.threshold_sugerido">Threshold {{ meta.threshold_sugerido | number: '1.2-2' }}</span>
+          <span *ngIf="meta.dt_financeiro">Financeiro {{ meta.dt_financeiro | date: 'shortDate' }}</span>
+        </div>
+      </mat-card>
+
+      <mat-card class="explicabilidade__chart">
+        <mat-card-title>Fatores que mais influenciam</mat-card-title>
+        <div class="chart">
+          <canvas baseChart [data]="fatoresChart()" [options]="fatoresOptions" [type]="'bar'"></canvas>
+        </div>
+      </mat-card>
+    </div>
+
+    <mat-card *ngIf="dados.observacoes?.length" class="explicabilidade__observacoes">
+      <mat-card-title>Observacoes para o analista</mat-card-title>
+      <ul>
+        <li *ngFor="let item of dados.observacoes">{{ item }}</li>
+      </ul>
+    </mat-card>
+  </ng-container>
+</div>

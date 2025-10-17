@@ -1,0 +1,163 @@
+:host {
+  display: block;
+}
+
+.explicabilidade {
+  min-height: 100vh;
+  padding: 2.5rem 3rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  color: #0b1120;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.explicabilidade__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.explicabilidade__toolbar h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.explicabilidade__back {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.explicabilidade__form {
+  background-color: #ffffff;
+  padding: 1.5rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 520px;
+}
+
+.explicabilidade__form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.explicabilidade__form input {
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid #cbd5f5;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+.explicabilidade__form button {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.explicabilidade__state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh;
+}
+
+.explicabilidade__state--error .explicabilidade__card {
+  color: #b91c1c;
+}
+
+.explicabilidade__card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 2.25rem 3rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.explicabilidade__grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.explicabilidade__score .score {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.explicabilidade__score .meta {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.risco {
+  margin-top: 0.75rem;
+  font-weight: 500;
+}
+
+.risco__valor {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.risco__valor--baixo {
+  color: #16a34a;
+}
+
+.risco__valor--medio {
+  color: #ca8a04;
+}
+
+.risco__valor--moderado {
+  color: #f97316;
+}
+
+.risco__valor--alto {
+  color: #dc2626;
+}
+
+.explicabilidade__chart .chart {
+  height: 320px;
+}
+
+.explicabilidade__observacoes ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .explicabilidade {
+    padding: 2rem 1.5rem;
+  }
+
+  .explicabilidade__form {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .explicabilidade__form-row {
+    flex-direction: column;
+  }
+
+  .explicabilidade__form button {
+    width: 100%;
+  }
+}

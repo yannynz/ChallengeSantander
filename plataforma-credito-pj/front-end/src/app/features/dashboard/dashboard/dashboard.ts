@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { NgApexchartsModule } from 'ng-apexcharts';
+import { RouterModule } from '@angular/router';
 import {
   ApexAxisChartSeries,
   ApexChart,
@@ -57,7 +58,7 @@ type ViewState = 'initial' | 'loading' | 'ready' | 'error';
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [CommonModule, FormsModule, MatCardModule, NgApexchartsModule],
+  imports: [CommonModule, FormsModule, MatCardModule, NgApexchartsModule, RouterModule],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss'],
 })

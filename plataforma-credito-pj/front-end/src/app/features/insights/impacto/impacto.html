@@ -1,0 +1,58 @@
+<div class="impacto">
+  <div class="impacto__toolbar">
+    <h1>Impacto de Negocio</h1>
+    <a routerLink="/dashboard" class="impacto__back">Voltar</a>
+  </div>
+
+  <section *ngIf="loading()" class="impacto__state">
+    <div class="impacto__card">Carregando projecoes de impacto...</div>
+  </section>
+
+  <section *ngIf="!loading() && error()" class="impacto__state impacto__state--error">
+    <div class="impacto__card">{{ error() }}</div>
+  </section>
+
+  <ng-container *ngIf="!loading() && !error()">
+    <div class="impacto__meta" *ngIf="metadados() as meta">
+      <span *ngIf="meta.atualizado_em">Atualizado em {{ meta.atualizado_em | date: 'short' }}</span>
+      <span *ngIf="meta.fonte">Fonte: {{ meta.fonte }}</span>
+      <span *ngIf="meta.amostra">Amostra: {{ meta.amostra }}</span>
+    </div>
+    <p *ngIf="resumo()" class="impacto__resumo">{{ resumo() }}</p>
+
+    <div class="impacto__grid">
+      <mat-card>
+        <mat-card-title>Limite de credito antes e depois</mat-card-title>
+        <div class="chart">
+          <canvas baseChart [data]="limitesChart()" [options]="limitesOptions" [type]="'bar'"></canvas>
+        </div>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-title>Influencia na rede</mat-card-title>
+        <div class="chart">
+          <canvas baseChart [data]="redeChart()" [options]="redeOptions" [type]="'bar'"></canvas>
+        </div>
+      </mat-card>
+
+      <mat-card class="impacto__lista">
+        <mat-card-title>Clientes monitorados</mat-card-title>
+        <ul>
+          <li *ngFor="let cliente of clientes()" class="cliente">
+            <div class="cliente__header">
+              <span class="cliente__nome">{{ cliente.nome }}</span>
+              <span class="cliente__score">{{ (cliente.score * 100) | number: '1.0-1' }}%</span>
+            </div>
+            <div class="cliente__limites">
+              Limite: R$ {{ cliente.limite_antes | number: '1.0-0' }} -> R$ {{ cliente.limite_depois | number: '1.0-0' }}
+            </div>
+            <div class="cliente__meta">
+              <span>Δ R$ {{ getVariacao(cliente) | number: '1.0-0' }}</span>
+              <span *ngIf="cliente.modelo">Modelo: {{ cliente.modelo }}</span>
+            </div>
+          </li>
+        </ul>
+      </mat-card>
+    </div>
+  </ng-container>
+</div>

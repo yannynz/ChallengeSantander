@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
     "serve:ssr:front-end": "node dist/front-end/server/server.mjs"
   },
   "prettier": {
@@ -37,9 +38,11 @@
     "@coreui/angular": "^5.5.12",
     "@coreui/coreui": "^5.4.3",
     "apexcharts": "^5.3.5",
+    "chart.js": "^4.5.1",
     "express": "^5.1.0",
     "jwt-decode": "^4.0.0",
     "ng-apexcharts": "^2.0.1",
+    "ng2-charts": "^8.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "vis-network": "^10.0.1",

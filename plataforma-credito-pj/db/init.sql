@@ -61,3 +61,26 @@ CREATE TABLE decisao_credito (
   motivo TEXT
 );
 
+-- Log de explicabilidade (SHAP)
+CREATE TABLE explainability_snapshot (
+  id BIGSERIAL PRIMARY KEY,
+  empresa_id TEXT REFERENCES empresa(id),
+  modelo TEXT NOT NULL,
+  executado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  score NUMERIC,
+  nivel_risco TEXT,
+  top_features JSONB NOT NULL,
+  base_value NUMERIC,
+  fonte TEXT NOT NULL DEFAULT 'ml_service'
+);
+
+-- Log do simulador de crédito
+CREATE TABLE simulacao_credito_log (
+  id BIGSERIAL PRIMARY KEY,
+  registrado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  usuario TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  score NUMERIC,
+  risco TEXT,
+  limite_sugerido NUMERIC
+);
